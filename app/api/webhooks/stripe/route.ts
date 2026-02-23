@@ -113,19 +113,19 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
 
-        console.log('Payment failed for subscription:', invoice.subscription)
+        console.log('Payment failed for subscription:', (invoice as any).subscription)
 
         // Mark subscription as past due
-        if (invoice.subscription) {
+        if ((invoice as any).subscription) {
           await (supabase
             .from('subscriptions') as any)
             .update({
               status: 'past_due',
               updated_at: new Date().toISOString()
             })
-            .eq('stripe_subscription_id', invoice.subscription as string)
+            .eq('stripe_subscription_id', (invoice as any).subscription as string)
 
-          console.log(`Marked subscription ${invoice.subscription} as past_due`)
+          console.log(`Marked subscription ${(invoice as any).subscription} as past_due`)
         }
         break
       }
@@ -133,19 +133,19 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
 
-        console.log('Payment succeeded for subscription:', invoice.subscription)
+        console.log('Payment succeeded for subscription:', (invoice as any).subscription)
 
         // Mark subscription as active if it was past due
-        if (invoice.subscription) {
+        if ((invoice as any).subscription) {
           await (supabase
             .from('subscriptions') as any)
             .update({
               status: 'active',
               updated_at: new Date().toISOString()
             })
-            .eq('stripe_subscription_id', invoice.subscription as string)
+            .eq('stripe_subscription_id', (invoice as any).subscription as string)
 
-          console.log(`Reactivated subscription ${invoice.subscription}`)
+          console.log(`Reactivated subscription ${(invoice as any).subscription}`)
         }
         break
       }

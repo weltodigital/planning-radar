@@ -5,11 +5,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getPlanLimits, getPlanDisplayName, getPlanColor, getDaysUntilTrialExpires } from '@/lib/plans'
+import { Plan } from '@/lib/types'
 
 export default function AccountPage() {
   const [user, setUser] = useState<any>(null)
   const [subscription, setSubscription] = useState<any>(null)
-  const [userPlan, setUserPlan] = useState<string>('free_trial')
+  const [userPlan, setUserPlan] = useState<Plan>('free_trial')
   const [planLimits, setPlanLimits] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)

@@ -34,8 +34,24 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
 
       setUser(user)
 
-      // Get user plan
-      const plan = await getUserPlan(user.id)
+      // Get subscription data directly from client
+      const { data: subscriptionData } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      // Calculate user plan client-side
+      let plan = subscriptionData?.plan || 'expired'
+      const now = new Date()
+      const trialEndsAt = subscriptionData?.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null
+
+      if (subscriptionData?.plan === 'free_trial' && trialEndsAt && trialEndsAt < now) {
+        plan = 'expired'
+      } else if (subscriptionData?.status !== 'active') {
+        plan = 'expired'
+      }
+
       setUserPlan(plan)
       setPlanLimits(getPlanLimits(plan))
 

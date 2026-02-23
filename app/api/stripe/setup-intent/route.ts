@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       })
 
       // Store customer ID in subscription
-      await supabase
-        .from('subscriptions')
+      await (supabase
+        .from('subscriptions') as any)
         .upsert({
           user_id: user.id,
           stripe_customer_id: customer.id,

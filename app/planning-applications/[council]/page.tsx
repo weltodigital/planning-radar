@@ -23,7 +23,7 @@ export async function generateStaticParams() {
   }
 
   // Get unique council names
-  const uniqueCouncils = [...new Set(data.map(item => item.lpa_name))]
+  const uniqueCouncils = [...new Set((data as any[]).map(item => item.lpa_name))]
 
   return uniqueCouncils.map((council) => ({
     council: council,

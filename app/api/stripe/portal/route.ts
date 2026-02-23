@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (!subscription?.stripe_customer_id) {
+    if (!(subscription as any)?.stripe_customer_id) {
       return NextResponse.json({
         success: false,
         error: 'No Stripe customer found. Please subscribe first.'
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
+      customer: (subscription as any).stripe_customer_id,
       return_url: `${baseUrl}/dashboard?portal=return`,
     })
 

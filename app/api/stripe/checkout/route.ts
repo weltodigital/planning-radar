@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    let stripeCustomerId = subscription?.stripe_customer_id
+    let stripeCustomerId = (subscription as any)?.stripe_customer_id
 
     // Create Stripe customer if doesn't exist
     if (!stripeCustomerId) {

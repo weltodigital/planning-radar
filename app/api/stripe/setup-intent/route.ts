@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (subscription?.stripe_customer_id) {
+    if ((subscription as any)?.stripe_customer_id) {
       // Retrieve existing customer
-      customer = await stripe.customers.retrieve(subscription.stripe_customer_id)
+      customer = await stripe.customers.retrieve((subscription as any).stripe_customer_id)
     } else {
       // Create new customer
       customer = await stripe.customers.create({

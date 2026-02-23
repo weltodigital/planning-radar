@@ -45,7 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select('lpa_name')
     .limit(5000)
 
-  const uniqueCouncils = councils ? [...new Set(councils.map(c => c.lpa_name))] : []
+  const uniqueCouncils = councils ? [...new Set((councils as any[]).map(c => c.lpa_name))] : []
 
   // Generate council pages
   const councilPages = uniqueCouncils.map(council => ({

@@ -68,7 +68,7 @@ function convertApiApplicationToDb(apiApp: PlanningApiApplication): Omit<Plannin
     lpa_id: apiApp.lpa_id,
     lpa_name: apiApp.lpa_name,
     title: apiApp.title,
-    address: apiApp.address || null,
+    address: apiApp.address || undefined,
     postcode: apiApp.postcode ? normalizePostcode(apiApp.postcode) : null,
     lat: apiApp.lat ? Number(apiApp.lat) : null,
     lng: apiApp.lng ? Number(apiApp.lng) : null,

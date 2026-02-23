@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: subscription.id,
             stripe_customer_id: session.customer as string,
             status: 'active',
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
             trial_ends_at: null, // Clear trial
             updated_at: new Date().toISOString()
           })
@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
             status: subscription.status === 'active' ? 'active' :
                    subscription.status === 'canceled' ? 'canceled' :
                    subscription.status === 'past_due' ? 'past_due' : 'active',
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString()
           })
           .eq('stripe_subscription_id', subscription.id)

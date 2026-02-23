@@ -7,7 +7,7 @@ import SubscriptionManagement from '@/components/SubscriptionManagement'
 export default async function DashboardPage({
   searchParams
 }: {
-  searchParams: { welcome?: string }
+  searchParams: { welcome?: string; upgrade?: string }
 }) {
   const supabase = await createClient()
 

@@ -42,13 +42,13 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
         .single()
 
       // Calculate user plan client-side
-      let plan = subscriptionData?.plan || 'expired'
+      let plan = (subscriptionData as any)?.plan || 'expired'
       const now = new Date()
-      const trialEndsAt = subscriptionData?.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null
+      const trialEndsAt = (subscriptionData as any)?.trial_ends_at ? new Date((subscriptionData as any).trial_ends_at) : null
 
-      if (subscriptionData?.plan === 'free_trial' && trialEndsAt && trialEndsAt < now) {
+      if ((subscriptionData as any)?.plan === 'free_trial' && trialEndsAt && trialEndsAt < now) {
         plan = 'expired'
-      } else if (subscriptionData?.status !== 'active') {
+      } else if ((subscriptionData as any)?.status !== 'active') {
         plan = 'expired'
       }
 

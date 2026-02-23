@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
 
       // Update subscription record with customer ID
       if (subscription) {
-        await supabase
-          .from('subscriptions')
+        await (supabase
+          .from('subscriptions') as any)
           .update({
             stripe_customer_id: stripeCustomerId,
             updated_at: new Date().toISOString()
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
           .eq('user_id', user.id)
       } else {
         // Create subscription record if it doesn't exist
-        await supabase
-          .from('subscriptions')
+        await (supabase
+          .from('subscriptions') as any)
           .insert({
             user_id: user.id,
             plan: 'free_trial',

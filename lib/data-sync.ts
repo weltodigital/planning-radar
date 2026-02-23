@@ -47,7 +47,7 @@ async function getLastSyncDate(lpaId: string): Promise<string> {
       .single()
 
     if (!error && data) {
-      return data.last_synced_at.split('T')[0] // Return just the date part
+      return (data as any).last_synced_at.split('T')[0] // Return just the date part
     }
   } catch (error) {
     console.warn(`Could not get last sync date for ${lpaId}:`, error)

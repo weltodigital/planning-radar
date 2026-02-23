@@ -227,7 +227,7 @@ export default async function CouncilPage({ params }: CouncilPageProps) {
           </div>
 
           <div className="space-y-4">
-            {councilData.applications.slice(0, 5).map((app, index) => (
+            {(councilData.applications as any[]).slice(0, 5).map((app: any, index) => (
               <div key={app.id} className="border-b border-slate-200/50 pb-4 last:border-b-0">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">

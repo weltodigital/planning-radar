@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
         if (priceId.includes('premium')) plan = 'premium'
 
         // Update subscription in database
-        await supabase
-          .from('subscriptions')
+        await (supabase
+          .from('subscriptions') as any)
           .update({
             plan,
             stripe_subscription_id: subscription.id,
@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
         if (priceId.includes('premium')) plan = 'premium'
 
         // Update subscription details
-        await supabase
-          .from('subscriptions')
+        await (supabase
+          .from('subscriptions') as any)
           .update({
             plan,
             status: subscription.status === 'active' ? 'active' :
@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
         console.log('Subscription canceled:', subscription.id)
 
         // Set subscription to expired/canceled
-        await supabase
-          .from('subscriptions')
+        await (supabase
+          .from('subscriptions') as any)
           .update({
             plan: 'expired',
             status: 'canceled',
@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
 
         // Mark subscription as past due
         if (invoice.subscription) {
-          await supabase
-            .from('subscriptions')
+          await (supabase
+            .from('subscriptions') as any)
             .update({
               status: 'past_due',
               updated_at: new Date().toISOString()
@@ -137,8 +137,8 @@ export async function POST(request: NextRequest) {
 
         // Mark subscription as active if it was past due
         if (invoice.subscription) {
-          await supabase
-            .from('subscriptions')
+          await (supabase
+            .from('subscriptions') as any)
             .update({
               status: 'active',
               updated_at: new Date().toISOString()

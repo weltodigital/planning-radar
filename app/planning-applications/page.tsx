@@ -33,7 +33,7 @@ async function getCouncilsData() {
   if (!applications) return []
 
   // Count applications per council
-  const councilCounts = applications.reduce((acc, app) => {
+  const councilCounts = (applications as any[]).reduce((acc, app) => {
     acc[app.lpa_name] = (acc[app.lpa_name] || 0) + 1
     return acc
   }, {} as Record<string, number>)

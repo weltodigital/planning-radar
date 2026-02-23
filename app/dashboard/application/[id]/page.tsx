@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PlanningApplication } from '@/lib/types'
-import { getUserPlan, getUserSubscription } from '@/lib/get-user-plan'
 import { getPlanLimits } from '@/lib/plans'
 
 export default function ApplicationDetailPage({ params }: { params: { id: string } }) {

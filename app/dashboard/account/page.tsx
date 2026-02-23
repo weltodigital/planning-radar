@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getUserPlan, getUserSubscription } from '@/lib/get-user-plan'
 import { getPlanLimits, getPlanDisplayName, getPlanColor, getDaysUntilTrialExpires } from '@/lib/plans'
 
 export default function AccountPage() {
@@ -43,8 +42,17 @@ export default function AccountPage() {
 
       setSubscription(subscriptionData)
 
-      // Get user plan
-      const plan = await getUserPlan(user.id)
+      // Calculate user plan client-side
+      let plan = subscriptionData?.plan || 'expired'
+      const now = new Date()
+      const trialEndsAt = subscriptionData?.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null
+
+      if (subscriptionData?.plan === 'free_trial' && trialEndsAt && trialEndsAt < now) {
+        plan = 'expired'
+      } else if (subscriptionData?.status !== 'active') {
+        plan = 'expired'
+      }
+
       setUserPlan(plan)
       setPlanLimits(getPlanLimits(plan))
 

@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { createStaticClient } from '@/lib/supabase/server'
 
-export default async function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://planningradar.co.uk'
 
   // Static pages

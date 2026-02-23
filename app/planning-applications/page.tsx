@@ -40,7 +40,7 @@ async function getCouncilsData() {
 
   // Convert to array and sort by count
   return Object.entries(councilCounts)
-    .map(([name, count]) => ({ name, count }))
+    .map(([name, count]) => ({ name, count: count as number }))
     .sort((a, b) => b.count - a.count)
 }
 

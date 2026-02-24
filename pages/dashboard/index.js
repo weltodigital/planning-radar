@@ -8,6 +8,17 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Search state
+  const [searchForm, setSearchForm] = useState({
+    postcode: '',
+    radius: '1',
+    council: '',
+    status: ''
+  })
+  const [searchResults, setSearchResults] = useState(null)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -39,6 +50,55 @@ export default function Dashboard() {
       router.push('/')
     } catch (error) {
       console.error('Sign out error:', error)
+    }
+  }
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    setSearching(true)
+    setSearchError('')
+
+    try {
+      const params = new URLSearchParams()
+
+      if (searchForm.postcode) params.append('postcode', searchForm.postcode)
+      if (searchForm.council) params.append('council', searchForm.council)
+      if (searchForm.status) params.append('status', searchForm.status)
+
+      const response = await fetch(`/api/search?${params.toString()}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data.upgrade_required) {
+          setSearchError(data.error + ' - Upgrade to Pro to access this feature.')
+        } else {
+          setSearchError(data.error || 'Search failed')
+        }
+        return
+      }
+
+      setSearchResults(data)
+    } catch (error) {
+      console.error('Search error:', error)
+      setSearchError('Search failed. Please try again.')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const handleFormChange = (field, value) => {
+    setSearchForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const getStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved': return 'bg-green-100 text-green-800'
+      case 'refused': return 'bg-red-100 text-red-800'
+      case 'pending': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -88,7 +148,7 @@ export default function Dashboard() {
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Search Planning Applications</h2>
 
-          <div className="space-y-4">
+          <form onSubmit={handleSearch} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -96,7 +156,9 @@ export default function Dashboard() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. SW1A 1AA"
+                  placeholder="e.g. BS1 5AH"
+                  value={searchForm.postcode}
+                  onChange={(e) => handleFormChange('postcode', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -105,7 +167,11 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Search Radius
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select
+                  value={searchForm.radius}
+                  onChange={(e) => handleFormChange('radius', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
                   <option value="0.5">0.5 miles</option>
                   <option value="1">1 mile</option>
                   <option value="3">3 miles</option>
@@ -119,7 +185,11 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Council (Alternative to postcode)
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select
+                  value={searchForm.council}
+                  onChange={(e) => handleFormChange('council', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
                   <option value="">Select a council...</option>
                   <option value="bristol">Bristol City Council</option>
                   <option value="birmingham">Birmingham City Council</option>
@@ -131,7 +201,11 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Application Status
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select
+                  value={searchForm.status}
+                  onChange={(e) => handleFormChange('status', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
                   <option value="">All applications</option>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -140,11 +214,73 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors">
-              Search Applications
+            {searchError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-700 text-sm">{searchError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={searching}
+              className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {searching ? 'Searching...' : 'Search Applications'}
             </button>
-          </div>
+          </form>
         </div>
+
+        {/* Search Results */}
+        {searchResults && (
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Search Results ({searchResults.pagination.total})
+              </h2>
+              {searchResults.limits_applied && (
+                <span className="text-sm text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                  Free trial: Showing first 10 results
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {searchResults.applications.map((app) => (
+                <div key={app.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-lg font-medium text-gray-900">{app.title}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.status)}`}>
+                      {app.status}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-2">{app.address}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-500">
+                    <div>
+                      <span className="font-medium">Council:</span> {app.council}
+                    </div>
+                    <div>
+                      <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
+                    </div>
+                    <div>
+                      <span className="font-medium">Type:</span> {app.type}
+                    </div>
+                    <div>
+                      <span className="font-medium">Applicant:</span> {app.applicant}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {searchResults.pagination.total_pages > 1 && (
+              <div className="mt-6 flex justify-center">
+                <div className="text-sm text-gray-500">
+                  Page {searchResults.pagination.page} of {searchResults.pagination.total_pages}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Trial Info */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">

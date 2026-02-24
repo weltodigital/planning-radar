@@ -67,8 +67,8 @@ export async function createTrialSubscription(userId: string) {
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 7)
 
-    const { data, error } = await supabase
-      .from('subscriptions')
+    const { data, error } = await (supabase
+      .from('subscriptions') as any)
       .insert({
         user_id: userId,
         plan: 'free_trial',

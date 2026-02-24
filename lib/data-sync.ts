@@ -160,8 +160,8 @@ async function logSyncResult(result: SyncResult): Promise<void> {
   try {
     const supabase = await createServiceRoleClient()
 
-    await supabase
-      .from('lpa_sync_log')
+    await (supabase
+      .from('lpa_sync_log') as any)
       .insert({
         lpa_id: result.lpaId,
         lpa_name: result.lpaName,

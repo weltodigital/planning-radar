@@ -27,9 +27,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Only match dashboard routes for authentication
+     * Temporarily disabled for debugging
      * This reduces the scope and potential for errors
      */
-    '/dashboard/:path*',
+    // '/dashboard/:path*',
   ],
 }

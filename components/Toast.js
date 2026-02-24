@@ -66,13 +66,13 @@ function Toast({ toast, onClose }) {
 
     switch (type) {
       case 'success':
-        return `${baseStyles} text-green-800 bg-green-50 border-green-300`
+        return `${baseStyles} text-success bg-success/10 border-success/30`
       case 'error':
-        return `${baseStyles} text-red-800 bg-red-50 border-red-300`
+        return `${baseStyles} text-danger bg-danger/10 border-danger/30`
       case 'warning':
-        return `${baseStyles} text-yellow-800 bg-yellow-50 border-yellow-300`
+        return `${baseStyles} text-warning bg-warning/10 border-warning/30`
       default:
-        return `${baseStyles} text-blue-800 bg-blue-50 border-blue-300`
+        return `${baseStyles} text-primary bg-primary/10 border-primary/30`
     }
   }
 

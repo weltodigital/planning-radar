@@ -65,6 +65,20 @@ CREATE TABLE IF NOT EXISTS saved_searches (
 
 CREATE INDEX IF NOT EXISTS idx_saved_user ON saved_searches(user_id);
 
+-- LPA sync log table
+CREATE TABLE IF NOT EXISTS lpa_sync_log (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  lpa_id TEXT NOT NULL,
+  lpa_name TEXT NOT NULL,
+  last_synced_at TIMESTAMPTZ DEFAULT NOW(),
+  applications_fetched INT DEFAULT 0,
+  status TEXT DEFAULT 'success',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_lpa ON lpa_sync_log(lpa_id);
+CREATE INDEX IF NOT EXISTS idx_sync_date ON lpa_sync_log(last_synced_at DESC);
+
 -- Postcode geocode cache
 CREATE TABLE IF NOT EXISTS postcode_cache (
   postcode TEXT PRIMARY KEY,
@@ -98,6 +112,45 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_set_location
   BEFORE INSERT OR UPDATE ON planning_applications
   FOR EACH ROW EXECUTE FUNCTION set_application_location();
+
+-- Function for radius search
+CREATE OR REPLACE FUNCTION applications_within_radius(
+  center_lat DECIMAL,
+  center_lng DECIMAL,
+  radius_meters DECIMAL
+)
+RETURNS TABLE(
+  id UUID,
+  title TEXT,
+  address TEXT,
+  postcode TEXT,
+  lpa_name TEXT,
+  decision TEXT,
+  date_validated DATE,
+  applicant_name TEXT,
+  application_type TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    pa.id,
+    pa.title,
+    pa.address,
+    pa.postcode,
+    pa.lpa_name,
+    pa.decision,
+    pa.date_validated,
+    pa.applicant_name,
+    pa.application_type
+  FROM planning_applications pa
+  WHERE pa.location IS NOT NULL
+    AND ST_DWithin(
+      pa.location,
+      ST_SetSRID(ST_MakePoint(center_lng, center_lat), 4326)::geography,
+      radius_meters
+    );
+END;
+$$ LANGUAGE plpgsql STABLE;
 
 -- Function to create subscription on user signup
 CREATE OR REPLACE FUNCTION handle_new_user()

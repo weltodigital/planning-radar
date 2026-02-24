@@ -1,4 +1,5 @@
 import { createServiceClient } from '../../lib/supabase/pages-client'
+import { geocodePostcode, milesToMeters } from '../../lib/geocode'
 
 // Get user's plan from database
 async function getUserPlan(userId) {
@@ -43,6 +44,7 @@ export default async function handler(req, res) {
     // Get query parameters
     const {
       postcode,
+      radius = 1, // Default 1 mile radius for postcode search
       council,
       status,
       keyword,
@@ -71,9 +73,19 @@ export default async function handler(req, res) {
 
     // Apply filters
     if (postcode) {
-      // Search by postcode area (first 3-4 characters)
-      const postcodeArea = postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
-      query = query.ilike('postcode', `${postcodeArea}%`)
+      // Try geographic radius search first (more accurate)
+      const coordinates = await geocodePostcode(postcode)
+
+      if (coordinates) {
+        // For now, use postcode area fallback since PostGIS function needs setup
+        // TODO: Implement proper radius search after PostGIS function is created
+        const postcodeArea = postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
+        query = query.ilike('postcode', `${postcodeArea}%`)
+      } else {
+        // Fallback to postcode area matching if geocoding fails
+        const postcodeArea = postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
+        query = query.ilike('postcode', `${postcodeArea}%`)
+      }
     }
 
     if (council) {

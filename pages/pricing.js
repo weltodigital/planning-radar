@@ -1,6 +1,39 @@
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function Pricing() {
+  const [loading, setLoading] = useState('')
+
+  const handleUpgrade = async (priceId, planName) => {
+    setLoading(planName)
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId }),
+      })
+
+      const { url, error } = await response.json()
+
+      if (error) {
+        console.error('Checkout error:', error)
+        alert('Failed to start checkout. Please try again.')
+        return
+      }
+
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+      alert('Failed to start checkout. Please try again.')
+    } finally {
+      setLoading('')
+    }
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -113,9 +146,13 @@ export default function Pricing() {
             </ul>
 
             <div className="mt-8">
-              <Link href="/signup" className="w-full bg-blue-600 text-white block text-center py-3 px-4 rounded-md font-medium hover:bg-blue-700">
-                Start Free Trial
-              </Link>
+              <button
+                onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || 'price_pro', 'pro')}
+                disabled={loading === 'pro'}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading === 'pro' ? 'Loading...' : 'Start Free Trial'}
+              </button>
             </div>
           </div>
 
@@ -154,9 +191,13 @@ export default function Pricing() {
             </ul>
 
             <div className="mt-8">
-              <Link href="/signup" className="w-full bg-blue-600 text-white block text-center py-3 px-4 rounded-md font-medium hover:bg-blue-700">
-                Start Free Trial
-              </Link>
+              <button
+                onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID || 'price_premium', 'premium')}
+                disabled={loading === 'premium'}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading === 'premium' ? 'Loading...' : 'Start Free Trial'}
+              </button>
             </div>
           </div>
         </div>

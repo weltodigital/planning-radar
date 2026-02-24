@@ -1,21 +1,39 @@
 import Link from 'next/link'
 import { useState } from 'react'
+import { createBrowserClient } from '../lib/supabase/pages-client'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const handleSignup = async (e) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
+    setIsSuccess(false)
 
     try {
-      // TODO: Implement Supabase auth signup
+      const supabase = createBrowserClient()
+
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: Math.random().toString(36), // Random password since we're using magic links
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) {
+        throw error
+      }
+
       setMessage('Account created! Check your email for the magic link.')
+      setIsSuccess(true)
     } catch (error) {
-      setMessage('Error creating account. Please try again.')
+      setMessage(error.message || 'Error creating account. Please try again.')
+      setIsSuccess(false)
     } finally {
       setLoading(false)
     }
@@ -81,7 +99,7 @@ export default function Signup() {
           </div>
 
           {message && (
-            <div className={`p-4 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            <div className={`p-4 rounded-md ${isSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
               {message}
             </div>
           )}

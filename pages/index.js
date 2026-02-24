@@ -41,7 +41,12 @@ export default function Home() {
               Start Free Trial
             </Link>
           </div>
-          <p className="text-sm text-gray-500 mt-4">7-day free trial • No credit card required</p>
+          <div className="flex justify-center mt-4">
+            <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 font-medium">
+              Try Live Demo →
+            </Link>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">7-day free trial • No credit card required</p>
         </div>
       </div>
 

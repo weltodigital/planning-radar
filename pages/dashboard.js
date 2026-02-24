@@ -114,9 +114,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Navigation */}
-      <nav className="bg-card shadow-sm border-b">
+      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4 sm:space-x-8">
@@ -144,7 +144,7 @@ export default function Dashboard() {
 
       {/* Trial Banner */}
       {mockUser.plan === 'free_trial' && (
-        <div className="bg-primary/5 border-b border-primary/20">
+        <div className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/20 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -152,7 +152,7 @@ export default function Dashboard() {
                   <strong>Free Trial Active</strong> - Trial ends {mockUser.trialEndsAt}. Limited to 10 results per search.
                 </div>
               </div>
-              <Link href="/pricing" className="bg-accent text-white px-4 py-2 rounded text-sm font-medium hover:bg-accent-dark">
+              <Link href="/pricing" className="bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark transition-all duration-200 shadow-sm">
                 Upgrade Now
               </Link>
             </div>
@@ -160,12 +160,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Search Form */}
           <div className="lg:col-span-1">
-            <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">Search Planning Applications</h2>
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <h2 className="text-xl font-bold text-secondary mb-6">Search Planning Applications</h2>
 
               <form onSubmit={handleSearch} className="space-y-4">
                 {/* Postcode & Radius */}
@@ -179,12 +179,12 @@ export default function Dashboard() {
                       placeholder="e.g. SW1A 1AA"
                       value={filters.postcode}
                       onChange={(e) => setFilters(prev => ({ ...prev, postcode: e.target.value }))}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-primary focus:border-primary"
+                      className="flex-1 px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
                     />
                     <select
                       value={filters.radius}
                       onChange={(e) => setFilters(prev => ({ ...prev, radius: e.target.value }))}
-                      className="px-3 py-2 border border-gray-300 rounded focus:ring-primary focus:border-primary"
+                      className="px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
                     >
                       <option value="0.5">0.5mi</option>
                       <option value="1">1mi</option>
@@ -202,7 +202,7 @@ export default function Dashboard() {
                   <select
                     value={filters.council}
                     onChange={(e) => setFilters(prev => ({ ...prev, council: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-primary focus:border-primary"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
                   >
                     <option value="">Select Council...</option>
                     <option value="Bristol">Bristol City Council</option>
@@ -225,7 +225,7 @@ export default function Dashboard() {
                     value={filters.keyword}
                     onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value }))}
                     disabled={mockUser.plan === 'free_trial'}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded focus:ring-primary focus:border-primary ${
+                    className={`w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200 ${
                       mockUser.plan === 'free_trial' ? 'bg-gray-50 text-gray-400' : ''
                     }`}
                   />
@@ -239,7 +239,7 @@ export default function Dashboard() {
                   <select
                     value={filters.status}
                     onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-primary focus:border-primary"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
                   >
                     <option value="">All Statuses</option>
                     <option value="Pending">Pending</option>
@@ -252,7 +252,7 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-primary text-white px-4 py-2 rounded font-medium hover:bg-primary-dark disabled:opacity-50"
+                  className="w-full bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   {loading ? 'Searching...' : 'Search Applications'}
                 </button>
@@ -262,14 +262,14 @@ export default function Dashboard() {
               <div className="mt-6 space-y-2">
                 <button
                   onClick={handleSaveSearch}
-                  className="w-full bg-gray-100 text-secondary px-4 py-2 rounded font-medium hover:bg-gray-200"
+                  className="w-full bg-slate-50 text-secondary px-6 py-3 rounded-xl font-medium hover:bg-slate-100 transition-all duration-200"
                 >
                   💾 Save Search {mockUser.plan === 'free_trial' && '(Pro+)'}
                 </button>
 
                 <button
                   onClick={handleExportCSV}
-                  className="w-full bg-gray-100 text-secondary px-4 py-2 rounded font-medium hover:bg-gray-200"
+                  className="w-full bg-slate-50 text-secondary px-6 py-3 rounded-xl font-medium hover:bg-slate-100 transition-all duration-200"
                 >
                   📊 Export CSV {mockUser.plan !== 'premium' && '(Premium)'}
                 </button>
@@ -277,7 +277,7 @@ export default function Dashboard() {
                 {mockUser.plan !== 'premium' && (
                   <Link
                     href="/dashboard/search/applicant"
-                    className="block w-full bg-gray-100 text-secondary px-4 py-2 rounded font-medium hover:bg-gray-200 text-center"
+                    className="block w-full bg-slate-50 text-secondary px-6 py-3 rounded-xl font-medium hover:bg-slate-100 text-center transition-all duration-200">
                   >
                     🔍 Search Applicants/Agents (Premium)
                   </Link>
@@ -288,8 +288,8 @@ export default function Dashboard() {
 
           {/* Search Results */}
           <div className="lg:col-span-2">
-            <div className="bg-card rounded-lg border">
-              <div className="p-6 border-b">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-lg">
+              <div className="p-8 border-b border-slate-100">
                 <h3 className="text-lg font-semibold text-secondary">
                   Search Results ({searchResults.length})
                 </h3>
@@ -300,7 +300,7 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className="divide-y">
+              <div className="divide-y divide-slate-100">
                 {loading ? (
                   <div className="p-8 text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -312,7 +312,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   searchResults.map((app) => (
-                    <div key={app.id} className="p-6 hover:bg-gray-50">
+                    <div key={app.id} className="p-6 hover:bg-slate-50/50 transition-colors duration-200">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="text-lg font-medium text-secondary flex-1 mr-4">
                           {app.title}
@@ -342,19 +342,19 @@ export default function Dashboard() {
       {/* Upgrade Modal */}
       {showUpgrade && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl">
             <h3 className="text-lg font-semibold text-secondary mb-4">Upgrade Required</h3>
             <p className="text-secondary-light mb-6">{upgradeMessage}</p>
             <div className="flex space-x-3">
               <Link
                 href="/pricing"
-                className="flex-1 bg-accent text-white px-4 py-2 rounded text-center font-medium hover:bg-accent-dark"
+                className="flex-1 bg-accent text-white px-6 py-3 rounded-xl text-center font-semibold hover:bg-accent-dark transition-all duration-200 shadow-lg"
               >
                 View Pricing
               </Link>
               <button
                 onClick={() => setShowUpgrade(false)}
-                className="flex-1 bg-gray-100 text-secondary px-4 py-2 rounded font-medium hover:bg-gray-200"
+                className="flex-1 bg-slate-50 text-secondary px-6 py-3 rounded-xl font-medium hover:bg-slate-100 transition-all duration-200"
               >
                 Close
               </button>

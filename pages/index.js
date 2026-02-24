@@ -6,20 +6,23 @@ export default function Home() {
   return (
     <>
       <SEOHead />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900">Planning Radar</h1>
+              <h1 className="text-2xl font-bold text-secondary tracking-tight">Planning Radar</h1>
             </div>
             <div className="flex space-x-4">
-              <Link href="/pricing" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link href="/pricing" className="text-secondary-light hover:text-secondary px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                 Pricing
               </Link>
-              <Link href="/login" className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-dark">
+              <Link href="/login" className="bg-white text-secondary border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all duration-200 mr-2">
                 Sign In
+              </Link>
+              <Link href="/signup" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-all duration-200 shadow-sm">
+                Start Free
               </Link>
             </div>
           </div>
@@ -27,81 +30,82 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
         <div className="text-center">
-          <h1 className="text-5xl font-extrabold text-secondary mb-6">
-            Track Every UK Planning Application
+          <h1 className="text-6xl lg:text-7xl font-bold text-secondary mb-8 leading-tight tracking-tight">
+            Track Every UK
+            <span className="block text-primary">Planning Application</span>
           </h1>
-          <p className="text-xl text-secondary-light mb-8 max-w-3xl mx-auto">
+          <p className="text-xl lg:text-2xl text-secondary-light mb-12 max-w-4xl mx-auto leading-relaxed">
             Find development opportunities before your competitors. Search, filter, and monitor planning applications across the UK with real-time data.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-8">
             <input
               type="text"
               placeholder="Enter postcode or area..."
-              className="w-full sm:w-80 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full sm:w-96 px-5 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm text-lg placeholder-slate-400"
             />
             <Link
               href="/signup"
-              className="w-full sm:w-auto bg-accent text-white px-8 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors"
+              className="w-full sm:w-auto bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-lg hover:shadow-xl text-lg"
               onClick={() => analytics.trackSignup('free_trial')}
             >
               Start Free Trial
             </Link>
           </div>
-          <div className="flex justify-center mt-4">
-            <Link href="/dashboard" className="text-primary hover:text-primary-dark font-medium">
+          <div className="flex justify-center">
+            <Link href="/dashboard" className="text-primary hover:text-primary-dark font-medium text-lg transition-colors duration-200">
               Try Live Demo →
             </Link>
           </div>
-          <p className="text-sm text-gray-500 mt-2">7-day free trial • No credit card required</p>
+          <p className="text-sm text-muted mt-4">7-day free trial • No credit card required</p>
         </div>
       </div>
 
       {/* Features Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-secondary mb-4">How It Works</h2>
-          <p className="text-lg text-secondary-light">Three simple steps to find planning opportunities</p>
+          <h2 className="text-4xl lg:text-5xl font-bold text-secondary mb-6 tracking-tight">How It Works</h2>
+          <p className="text-xl text-secondary-light">Three simple steps to find planning opportunities</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-12 lg:gap-16">
           <div className="text-center">
-            <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🔍</span>
+            <div className="bg-gradient-to-br from-primary/20 to-primary/5 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <span className="text-3xl">🔍</span>
             </div>
-            <h3 className="text-xl font-semibold text-secondary mb-2">Search</h3>
-            <p className="text-secondary-light">Enter any UK postcode or council area to find planning applications</p>
+            <h3 className="text-2xl font-bold text-secondary mb-4">Search</h3>
+            <p className="text-lg text-secondary-light leading-relaxed">Enter any UK postcode or council area to find planning applications</p>
           </div>
 
           <div className="text-center">
-            <div className="bg-success/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">📊</span>
+            <div className="bg-gradient-to-br from-success/20 to-success/5 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <span className="text-3xl">📊</span>
             </div>
-            <h3 className="text-xl font-semibold text-secondary mb-2">Filter</h3>
-            <p className="text-secondary-light">Use advanced filters to find exactly what you&apos;re looking for</p>
+            <h3 className="text-2xl font-bold text-secondary mb-4">Filter</h3>
+            <p className="text-lg text-secondary-light leading-relaxed">Use advanced filters to find exactly what you&apos;re looking for</p>
           </div>
 
           <div className="text-center">
-            <div className="bg-accent/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">⚡</span>
+            <div className="bg-gradient-to-br from-accent/20 to-accent/5 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <span className="text-3xl">⚡</span>
             </div>
-            <h3 className="text-xl font-semibold text-secondary mb-3">Act</h3>
-            <p className="text-secondary-light">Export data, save searches, and track your opportunities</p>
+            <h3 className="text-2xl font-bold text-secondary mb-4">Act</h3>
+            <p className="text-lg text-secondary-light leading-relaxed">Export data, save searches, and track your opportunities</p>
           </div>
         </div>
       </div>
 
       {/* Pricing Section */}
-      <div className="bg-background py-16">
+      <div className="bg-slate-50/50 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-secondary mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-lg text-secondary-light">Choose the plan that works for your business</p>
+            <h2 className="text-4xl lg:text-5xl font-bold text-secondary mb-6 tracking-tight">Simple, Transparent Pricing</h2>
+            <p className="text-xl text-secondary-light">Choose the plan that works for your business</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-lg shadow-sm border p-6">
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 hover:shadow-lg transition-shadow duration-300">
               <h3 className="text-xl font-semibold mb-4">Free Trial</h3>
               <div className="text-3xl font-bold mb-4">£0 <span className="text-sm font-normal text-gray-500">for 7 days</span></div>
               <ul className="space-y-2 mb-6">
@@ -113,8 +117,8 @@ export default function Home() {
               <button className="w-full bg-gray-200 text-gray-800 py-2 rounded-md font-medium">Current Plan</button>
             </div>
 
-            <div className="bg-card rounded-lg shadow-lg border-2 border-accent p-6 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-accent text-white px-3 py-1 rounded-full text-sm font-medium">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-accent p-8 relative transform hover:scale-105 transition-all duration-300">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-accent text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg">
                 Most Popular
               </div>
               <h3 className="text-xl font-semibold mb-4">Pro</h3>
@@ -126,12 +130,12 @@ export default function Home() {
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>Full application detail</li>
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>5 saved searches</li>
               </ul>
-              <button className="w-full bg-primary text-white py-2 rounded-md font-medium hover:bg-primary-dark">
+              <button className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-sm hover:shadow-md">
                 Start Free Trial
               </button>
             </div>
 
-            <div className="bg-card rounded-lg shadow-sm border p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 hover:shadow-lg transition-shadow duration-300">
               <h3 className="text-xl font-semibold mb-4">Premium</h3>
               <div className="text-3xl font-bold mb-4">£199 <span className="text-sm font-normal text-gray-500">per month</span></div>
               <ul className="space-y-2 mb-6">
@@ -141,7 +145,7 @@ export default function Home() {
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>CSV export</li>
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>Applicant & agent search</li>
               </ul>
-              <button className="w-full bg-primary text-white py-2 rounded-md font-medium hover:bg-primary-dark">
+              <button className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-sm hover:shadow-md">
                 Start Free Trial
               </button>
             </div>
@@ -150,7 +154,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-card border-t py-8">
+      <footer className="bg-white border-t border-slate-200/60 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-muted">&copy; 2024 Planning Radar. All rights reserved.</p>

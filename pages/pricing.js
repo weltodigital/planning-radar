@@ -35,9 +35,9 @@ export default function Pricing() {
     }
   }
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Navigation */}
-      <nav className="bg-card shadow-sm border-b">
+      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex-shrink-0">
@@ -57,19 +57,19 @@ export default function Pricing() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h1 className="text-4xl font-extrabold text-secondary sm:text-5xl">
+          <h1 className="text-5xl lg:text-6xl font-bold text-secondary tracking-tight">
             Simple, Transparent Pricing
           </h1>
-          <p className="mt-4 text-xl text-secondary-light max-w-3xl mx-auto">
+          <p className="mt-6 text-xl text-secondary-light max-w-4xl mx-auto leading-relaxed">
             Choose the plan that works for your business. All plans include a 7-day free trial.
           </p>
         </div>
 
-        <div className="mt-16 grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="mt-20 grid lg:grid-cols-3 gap-8 lg:gap-12 max-w-6xl mx-auto">
           {/* Free Trial */}
-          <div className="bg-card rounded-lg shadow-sm border p-8">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-10 hover:shadow-xl transition-shadow duration-300">
             <div className="text-center">
               <h3 className="text-2xl font-semibold text-secondary">Free Trial</h3>
               <p className="mt-4 text-secondary-light">Perfect for testing our service</p>
@@ -106,9 +106,9 @@ export default function Pricing() {
           </div>
 
           {/* Pro Plan */}
-          <div className="bg-card rounded-lg shadow-lg border-2 border-accent p-8 relative">
+          <div className="bg-white rounded-2xl shadow-2xl border-2 border-accent p-10 relative transform hover:scale-105 transition-all duration-300">
             <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <span className="bg-accent text-white px-4 py-2 rounded-full text-sm font-medium">
+              <span className="bg-accent text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg">
                 Most Popular
               </span>
             </div>
@@ -149,7 +149,7 @@ export default function Pricing() {
               <button
                 onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || 'price_pro', 'pro')}
                 disabled={loading === 'pro'}
-                className="w-full bg-primary text-white py-3 px-4 rounded-md font-medium hover:bg-primary-dark disabled:opacity-50"
+                className="w-full bg-primary text-white py-4 px-6 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {loading === 'pro' ? 'Loading...' : 'Start Free Trial'}
               </button>
@@ -157,7 +157,7 @@ export default function Pricing() {
           </div>
 
           {/* Premium Plan */}
-          <div className="bg-card rounded-lg shadow-sm border p-8">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-10 hover:shadow-xl transition-shadow duration-300">
             <div className="text-center">
               <h3 className="text-2xl font-semibold text-secondary">Premium</h3>
               <p className="mt-4 text-secondary-light">For professional developers and agencies</p>
@@ -194,7 +194,7 @@ export default function Pricing() {
               <button
                 onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID || 'price_premium', 'premium')}
                 disabled={loading === 'premium'}
-                className="w-full bg-primary text-white py-3 px-4 rounded-md font-medium hover:bg-primary-dark disabled:opacity-50"
+                className="w-full bg-primary text-white py-4 px-6 rounded-xl font-semibold hover:bg-primary-dark disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {loading === 'premium' ? 'Loading...' : 'Start Free Trial'}
               </button>

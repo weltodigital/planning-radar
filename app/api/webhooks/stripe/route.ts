@@ -40,9 +40,12 @@ export async function POST(request: NextRequest) {
         const priceId = subscription.items.data[0].price.id
         let plan = 'pro' // default
 
-        // You'll need to set these based on your actual Stripe price IDs
-        // For now, using a simple mapping - you should add your actual price IDs
-        if (priceId.includes('premium')) plan = 'premium'
+        // Map actual Stripe price IDs to plans
+        if (priceId === process.env.STRIPE_PREMIUM_PRICE_ID) {
+          plan = 'premium'
+        } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
+          plan = 'pro'
+        }
 
         // Update subscription in database
         await (supabase
@@ -71,7 +74,12 @@ export async function POST(request: NextRequest) {
         // Map price ID to plan
         const priceId = subscription.items.data[0].price.id
         let plan = 'pro'
-        if (priceId.includes('premium')) plan = 'premium'
+
+        if (priceId === process.env.STRIPE_PREMIUM_PRICE_ID) {
+          plan = 'premium'
+        } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
+          plan = 'pro'
+        }
 
         // Update subscription details
         await (supabase

@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Removed experimental features for stable deployment
+  output: 'standalone',
+  trailingSlash: true,
 }
 
 module.exports = nextConfig

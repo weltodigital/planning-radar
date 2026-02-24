@@ -246,8 +246,8 @@ export async function geocodePostcodesBatch(postcodes: string[]): Promise<Map<st
         // Batch insert to cache
         if (cacheInserts.length > 0) {
           try {
-            await supabase
-              .from('postcode_cache')
+            await (supabase
+              .from('postcode_cache') as any)
               .insert(cacheInserts)
           } catch (insertError) {
             console.warn('Failed to cache postcode batch:', insertError)

@@ -1,8 +1,46 @@
 import Link from 'next/link'
 import SEOHead from '../components/SEOHead'
 import { analytics } from '../components/Analytics'
+import { createServiceClient } from '../lib/supabase/pages-client'
 
-export default function Home() {
+export async function getStaticProps() {
+  try {
+    const supabase = createServiceClient()
+
+    const { data: latestApplications, error } = await supabase
+      .from('planning_applications')
+      .select('id, address, lpa_name, title, date_validated, decision')
+      .order('date_validated', { ascending: false })
+      .limit(10)
+
+    if (error) {
+      console.error('Error fetching latest applications:', error)
+      return {
+        props: {
+          latestApplications: []
+        },
+        revalidate: 3600 // Revalidate every hour
+      }
+    }
+
+    return {
+      props: {
+        latestApplications: latestApplications || []
+      },
+      revalidate: 3600 // Revalidate every hour
+    }
+  } catch (error) {
+    console.error('Error in getStaticProps:', error)
+    return {
+      props: {
+        latestApplications: []
+      },
+      revalidate: 3600
+    }
+  }
+}
+
+export default function Home({ latestApplications }) {
   return (
     <>
       <SEOHead />
@@ -54,7 +92,7 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex justify-center">
-            <Link href="/dashboard" className="text-primary hover:text-primary-dark font-medium text-lg transition-colors duration-200">
+            <Link href="/demo" className="text-primary hover:text-primary-dark font-medium text-lg transition-colors duration-200">
               Try Live Demo →
             </Link>
           </div>
@@ -93,6 +131,79 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-secondary mb-4">Act</h3>
             <p className="text-lg text-secondary-light leading-relaxed">Export data, save searches, and track your opportunities</p>
           </div>
+        </div>
+      </div>
+
+      {/* Latest Planning Applications Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl lg:text-5xl font-bold text-secondary mb-6 tracking-tight">Latest Applications Submitted Today</h2>
+          <p className="text-xl text-secondary-light">Live data from planning authorities across the UK</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+          {latestApplications && latestApplications.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50/50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Date</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Address</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Council</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Description</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {latestApplications.map((app, index) => (
+                      <tr key={app.id} className="hover:bg-slate-50/50 transition-colors duration-200">
+                        <td className="px-6 py-4 text-sm text-secondary-light">
+                          {new Date(app.date_validated).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-secondary max-w-xs">
+                          <div className="truncate">{app.address}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-secondary-light">
+                          {app.lpa_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-secondary max-w-sm">
+                          <div className="line-clamp-2">
+                            {app.title?.length > 80 ? `${app.title.substring(0, 80)}...` : app.title}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                            app.decision?.toLowerCase() === 'approved' ? 'bg-success/10 text-success' :
+                            app.decision?.toLowerCase() === 'refused' ? 'bg-danger/10 text-danger' :
+                            app.decision?.toLowerCase() === 'pending' ? 'bg-warning/10 text-warning' :
+                            'bg-muted/10 text-muted'
+                          }`}>
+                            {app.decision || 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-8 bg-slate-50/30 border-t border-slate-100 text-center">
+                <p className="text-secondary-light mb-4">Want to search all planning applications with advanced filters?</p>
+                <Link href="/signup" className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-lg hover:shadow-xl">
+                  Search all planning applications →
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="px-6 py-12 text-center">
+              <div className="text-4xl mb-4">🏗️</div>
+              <h3 className="text-xl font-semibold text-secondary mb-2">Planning Data Loading</h3>
+              <p className="text-secondary-light mb-6">We're currently syncing the latest planning applications from councils across the UK.</p>
+              <Link href="/signup" className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-lg hover:shadow-xl">
+                Start Free Trial →
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

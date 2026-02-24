@@ -1,262 +1,374 @@
 import Link from 'next/link'
-import { useRouter } from 'next/router'
-
-// Sample council data - in production this would come from your database
-const councilData = {
-  'bristol-city-council': {
-    name: 'Bristol City Council',
-    totalApplications: 1245,
-    approvalRate: '68%',
-    avgProcessingTime: '8 weeks',
-    area: 'Bristol, South West England',
-    population: '467,000',
-    recentApplications: [
-      {
-        id: 1,
-        title: 'Single storey rear extension',
-        address: '123 High Street, Bristol BS1 5AH',
-        status: 'Approved',
-        date: '2024-01-15'
-      },
-      {
-        id: 2,
-        title: 'Two storey side extension',
-        address: '45 Park Road, Bristol BS2 8QW',
-        status: 'Pending',
-        date: '2024-01-20'
-      },
-      {
-        id: 3,
-        title: 'Change of use from retail to residential',
-        address: '67 Queen Street, Bristol BS1 4DF',
-        status: 'Refused',
-        date: '2024-01-18'
-      }
-    ]
-  },
-  'birmingham-city-council': {
-    name: 'Birmingham City Council',
-    totalApplications: 2134,
-    approvalRate: '72%',
-    avgProcessingTime: '6 weeks',
-    area: 'Birmingham, West Midlands',
-    population: '1,141,000',
-    recentApplications: [
-      {
-        id: 4,
-        title: 'New detached dwelling',
-        address: '89 Oak Avenue, Birmingham B1 1AA',
-        status: 'Approved',
-        date: '2024-01-10'
-      },
-      {
-        id: 5,
-        title: 'Loft conversion with dormer windows',
-        address: '22 Elm Grove, Birmingham B2 4RT',
-        status: 'Pending',
-        date: '2024-01-25'
-      }
-    ]
-  }
-}
+import { createServiceClient } from '../../lib/supabase/pages-client'
 
 export async function getStaticPaths() {
-  // Generate paths for all councils
-  const paths = Object.keys(councilData).map((council) => ({
-    params: { council }
-  }))
+  try {
+    const supabase = createServiceClient()
 
-  return {
-    paths,
-    fallback: false
+    // Get all unique council names for static generation
+    const { data: councils, error } = await supabase
+      .from('planning_applications')
+      .select('lpa_name')
+      .group('lpa_name')
+      .order('lpa_name')
+
+    if (error) {
+      console.error('Error fetching councils:', error)
+      return {
+        paths: [],
+        fallback: 'blocking'
+      }
+    }
+
+    // Generate slugs from council names
+    const paths = councils.map(council => ({
+      params: {
+        council: council.lpa_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      }
+    }))
+
+    return {
+      paths,
+      fallback: 'blocking'
+    }
+  } catch (error) {
+    console.error('Error in getStaticPaths:', error)
+    return {
+      paths: [],
+      fallback: 'blocking'
+    }
   }
 }
 
 export async function getStaticProps({ params }) {
-  const council = councilData[params.council]
+  try {
+    const supabase = createServiceClient()
+    const councilSlug = params.council
 
-  if (!council) {
-    return { notFound: true }
-  }
+    // Find the actual council name from the slug
+    const { data: allCouncils } = await supabase
+      .from('planning_applications')
+      .select('lpa_name')
+      .group('lpa_name')
 
-  return {
-    props: {
-      council: {
-        slug: params.council,
-        ...council
+    const councilName = allCouncils?.find(c =>
+      c.lpa_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') === councilSlug
+    )?.lpa_name
+
+    if (!councilName) {
+      return {
+        notFound: true
       }
-    },
-    revalidate: 86400 // Revalidate once per day
+    }
+
+    // Get stats for this council
+    const { data: applications, error } = await supabase
+      .from('planning_applications')
+      .select('id, title, address, date_validated, decision, applicant_name, application_type')
+      .eq('lpa_name', councilName)
+      .order('date_validated', { ascending: false })
+      .limit(20)
+
+    if (error) {
+      console.error('Error fetching applications:', error)
+    }
+
+    // Calculate stats
+    const thisMonth = new Date()
+    thisMonth.setDate(1)
+    const thisMonthApplications = applications?.filter(app =>
+      new Date(app.date_validated) >= thisMonth
+    ).length || 0
+
+    const approvedApplications = applications?.filter(app =>
+      app.decision?.toLowerCase() === 'approved'
+    ).length || 0
+
+    const approvalRate = applications?.length > 0
+      ? Math.round((approvedApplications / applications.length) * 100)
+      : 0
+
+    // Get most common application types
+    const typeCounts = {}
+    applications?.forEach(app => {
+      if (app.application_type) {
+        typeCounts[app.application_type] = (typeCounts[app.application_type] || 0) + 1
+      }
+    })
+
+    const mostCommonType = Object.keys(typeCounts).length > 0
+      ? Object.keys(typeCounts).reduce((a, b) => typeCounts[a] > typeCounts[b] ? a : b)
+      : 'Householder'
+
+    return {
+      props: {
+        councilName,
+        councilSlug,
+        applications: applications || [],
+        stats: {
+          thisMonth: thisMonthApplications,
+          approvalRate,
+          mostCommonType,
+          totalShown: applications?.length || 0
+        }
+      },
+      revalidate: 86400 // Revalidate daily
+    }
+  } catch (error) {
+    console.error('Error in getStaticProps:', error)
+    return {
+      notFound: true
+    }
   }
 }
 
-const getStatusBadgeColor = (status) => {
+function getStatusBadgeColor(status) {
   switch (status?.toLowerCase()) {
-    case 'approved': return 'bg-green-100 text-green-800'
-    case 'refused': return 'bg-red-100 text-red-800'
-    case 'pending': return 'bg-yellow-100 text-yellow-800'
-    default: return 'bg-gray-100 text-gray-800'
+    case 'approved':
+      return 'bg-success/10 text-success'
+    case 'refused':
+      return 'bg-danger/10 text-danger'
+    case 'pending':
+      return 'bg-warning/10 text-warning'
+    default:
+      return 'bg-muted/10 text-muted'
   }
 }
 
-export default function CouncilPage({ council }) {
-  const router = useRouter()
+export default function CouncilPage({ councilName, councilSlug, applications, stats }) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": `How can I search planning applications in ${councilName}?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `You can search planning applications in ${councilName} by postcode, address, or keyword. Our platform provides access to the latest planning applications with advanced filtering options.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `What types of planning applications are submitted to ${councilName}?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `${councilName} receives various types of planning applications including householder applications, full planning applications, change of use applications, and more. The most common type is ${stats.mostCommonType}.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `How often is planning application data updated?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Planning application data is updated daily from official sources, ensuring you have access to the most recent submissions and decisions."
+        }
+      }
+    ]
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex-shrink-0">
-              <Link href="/" className="text-2xl font-bold text-gray-900">
-                Planning Radar
-              </Link>
-            </div>
-            <div className="flex space-x-4">
-              <Link href="/pricing" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                Pricing
-              </Link>
-              <Link href="/signup" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                Start Free Trial
-              </Link>
+    <>
+      <head>
+        <title>Planning Applications in {councilName} | Planning Radar</title>
+        <meta
+          name="description"
+          content={`Browse the latest planning applications submitted to ${councilName}. Track new developments, extensions, and change of use applications with real-time data.`}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      </head>
+
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+        {/* Navigation */}
+        <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex-shrink-0">
+                <Link href="/" className="text-2xl font-bold text-secondary tracking-tight">
+                  Planning Radar
+                </Link>
+              </div>
+              <div className="flex space-x-4">
+                <Link href="/planning-applications" className="text-secondary-light hover:text-secondary px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                  All Councils
+                </Link>
+                <Link href="/pricing" className="text-secondary-light hover:text-secondary px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                  Pricing
+                </Link>
+                <Link href="/login" className="bg-white text-secondary border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all duration-200 mr-2">
+                  Sign In
+                </Link>
+                <Link href="/signup" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-all duration-200 shadow-sm">
+                  Start Free Trial
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="flex mb-8" aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-4">
-            <li>
-              <Link href="/" className="text-gray-400 hover:text-gray-500">
-                Home
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li>
-              <Link href="/planning-applications" className="text-gray-400 hover:text-gray-500">
-                Planning Applications
-              </Link>
-            </li>
-            <li>
-              <span className="text-gray-400">/</span>
-            </li>
-            <li className="text-gray-900 font-medium">
-              {council.name}
-            </li>
-          </ol>
         </nav>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {council.name} Planning Applications
-          </h1>
-          <p className="text-xl text-gray-600 mb-6">
-            Track the latest planning applications submitted to {council.name}.
-            Find development opportunities and monitor local planning decisions.
-          </p>
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl lg:text-5xl font-bold text-secondary mb-6 tracking-tight">
+              Planning Applications in {councilName}
+            </h1>
+            <p className="text-xl text-secondary-light max-w-3xl mx-auto">
+              Browse the latest planning applications, track development opportunities, and stay informed about new projects in {councilName}.
+            </p>
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-3xl font-bold text-blue-600 mb-2">{council.totalApplications}</div>
-            <div className="text-sm text-gray-600">Total Applications</div>
+          {/* Stats Section */}
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+              <div className="text-3xl font-bold text-primary mb-2">{stats.thisMonth}</div>
+              <div className="text-secondary-light">Applications This Month</div>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+              <div className="text-3xl font-bold text-success mb-2">{stats.approvalRate}%</div>
+              <div className="text-secondary-light">Approval Rate</div>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+              <div className="text-lg font-semibold text-secondary mb-2">{stats.mostCommonType}</div>
+              <div className="text-secondary-light">Most Common Type</div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-3xl font-bold text-green-600 mb-2">{council.approvalRate}</div>
-            <div className="text-sm text-gray-600">Approval Rate</div>
-          </div>
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-3xl font-bold text-purple-600 mb-2">{council.avgProcessingTime}</div>
-            <div className="text-sm text-gray-600">Avg Processing Time</div>
-          </div>
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-3xl font-bold text-orange-600 mb-2">{council.population}</div>
-            <div className="text-sm text-gray-600">Population</div>
-          </div>
-        </div>
 
-        {/* Recent Applications */}
-        <div className="bg-white rounded-lg border p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Planning Applications</h2>
-          <div className="space-y-4">
-            {council.recentApplications.map((app) => (
-              <div key={app.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-medium text-gray-900">{app.title}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.status)}`}>
-                    {app.status}
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-2">{app.address}</p>
-                <div className="text-sm text-gray-500">
-                  <span className="font-medium">Date:</span> {new Date(app.date).toLocaleDateString()}
-                </div>
+          {/* Recent Applications Table */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden mb-12">
+            <div className="p-8 border-b border-slate-100">
+              <h2 className="text-2xl font-bold text-secondary mb-2">Recent Planning Applications</h2>
+              <p className="text-secondary-light">Latest {stats.totalShown} applications submitted to {councilName}</p>
+            </div>
+
+            {applications.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50/50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Date</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Address</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Description</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-secondary">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {applications.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-50/50 transition-colors duration-200">
+                        <td className="px-6 py-4 text-sm text-secondary-light">
+                          {new Date(app.date_validated).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-secondary max-w-xs">
+                          <div className="truncate">{app.address}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-secondary max-w-sm">
+                          <div className="line-clamp-2">
+                            {app.title?.length > 60 ? `${app.title.substring(0, 60)}...` : app.title}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-secondary-light">
+                          {app.application_type || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.decision)}`}>
+                            {app.decision || 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            ) : (
+              <div className="p-8 text-center text-secondary-light">
+                <p>No recent applications found for {councilName}.</p>
+              </div>
+            )}
+          </div>
+
+          {/* CTA Section */}
+          <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl p-12 text-center">
+            <h2 className="text-3xl font-bold text-secondary mb-4">
+              Get Full Access to All {councilName} Planning Applications
+            </h2>
+            <p className="text-xl text-secondary-light mb-8 max-w-3xl mx-auto">
+              Search unlimited applications with advanced filters, save searches, export data, and track your opportunities with our Pro and Premium plans.
+            </p>
+            <Link
+              href="/signup"
+              className="inline-flex items-center px-8 py-4 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-lg hover:shadow-xl text-lg"
+            >
+              Start Free Trial →
+            </Link>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="mt-16">
+            <h2 className="text-3xl font-bold text-center text-secondary mb-12">
+              Frequently Asked Questions
+            </h2>
+            <div className="max-w-4xl mx-auto space-y-8">
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+                <h3 className="text-lg font-semibold text-secondary mb-4">
+                  How can I search planning applications in {councilName}?
+                </h3>
+                <p className="text-secondary-light leading-relaxed">
+                  You can search planning applications in {councilName} by postcode, address, or keyword. Our platform provides access to the latest planning applications with advanced filtering options including date ranges, application types, and decision status.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+                <h3 className="text-lg font-semibold text-secondary mb-4">
+                  What types of planning applications are submitted to {councilName}?
+                </h3>
+                <p className="text-secondary-light leading-relaxed">
+                  {councilName} receives various types of planning applications including householder applications (home extensions, loft conversions), full planning applications (new developments), change of use applications, and listed building consent applications. The most common type in this area is {stats.mostCommonType}.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+                <h3 className="text-lg font-semibold text-secondary mb-4">
+                  How often is the planning application data updated?
+                </h3>
+                <p className="text-secondary-light leading-relaxed">
+                  Our planning application data is updated daily from official government sources, ensuring you have access to the most recent submissions and decisions from {councilName} and other planning authorities across the UK.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
+                <h3 className="text-lg font-semibold text-secondary mb-4">
+                  Can I set up alerts for new planning applications in {councilName}?
+                </h3>
+                <p className="text-secondary-light leading-relaxed">
+                  Yes, with our Pro and Premium plans, you can save custom searches and receive notifications when new planning applications match your criteria. This is perfect for property investors and developers looking to identify opportunities in {councilName}.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation to other councils */}
+          <div className="mt-16 text-center">
+            <Link
+              href="/planning-applications"
+              className="inline-flex items-center text-primary hover:text-primary-dark font-medium text-lg transition-colors duration-200"
+            >
+              ← Browse All UK Planning Authorities
+            </Link>
           </div>
         </div>
 
-        {/* CTA Section */}
-        <div className="bg-blue-50 rounded-lg p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Get Full Access to {council.name} Planning Data
-          </h2>
-          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Search all planning applications, set up alerts, and track development opportunities
-            in {council.area} with our comprehensive planning application database.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/signup" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700">
-              Start Free Trial
-            </Link>
-            <Link href="/pricing" className="text-blue-600 hover:text-blue-800 font-medium">
-              View Pricing →
-            </Link>
+        {/* Footer */}
+        <footer className="bg-white border-t border-slate-200/60 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <p className="text-muted">&copy; 2024 Planning Radar. All rights reserved.</p>
+            </div>
           </div>
-        </div>
-
-        {/* SEO Content */}
-        <div className="mt-12 prose max-w-none">
-          <h2>About {council.name} Planning Applications</h2>
-          <p>
-            {council.name} serves the {council.area} area with a population of {council.population}.
-            The council processes approximately {council.totalApplications} planning applications annually,
-            with an average approval rate of {council.approvalRate} and processing time of {council.avgProcessingTime}.
-          </p>
-
-          <h3>Types of Planning Applications</h3>
-          <ul>
-            <li>Householder applications (extensions, conservatories, outbuildings)</li>
-            <li>Full planning applications (new builds, major developments)</li>
-            <li>Change of use applications</li>
-            <li>Listed building consent</li>
-            <li>Advertisement consent</li>
-          </ul>
-
-          <h3>Planning Application Process</h3>
-          <p>
-            Planning applications submitted to {council.name} go through a standardized process including
-            validation, consultation, assessment, and decision. Our system tracks applications throughout
-            this process, providing real-time updates on status changes and decisions.
-          </p>
-        </div>
+        </footer>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-white border-t py-8 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-500">&copy; 2024 Planning Radar. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   )
 }

@@ -119,11 +119,11 @@ export default function Dashboard() {
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-2xl font-bold text-gray-900">
+            <div className="flex items-center space-x-4 sm:space-x-8">
+              <Link href="/" className="text-xl sm:text-2xl font-bold text-gray-900">
                 Planning Radar
               </Link>
-              <div className="flex space-x-6">
+              <div className="hidden sm:flex space-x-6">
                 <Link href="/dashboard" className="text-blue-600 font-medium">
                   Dashboard
                 </Link>
@@ -132,11 +132,11 @@ export default function Dashboard() {
                 </Link>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlanBadgeColor(mockUser.plan)}`}>
                 {mockUser.plan === 'free_trial' ? 'Free Trial' : mockUser.plan.charAt(0).toUpperCase() + mockUser.plan.slice(1)}
               </span>
-              <span className="text-sm text-gray-600">{mockUser.email}</span>
+              <span className="hidden sm:block text-sm text-gray-600">{mockUser.email}</span>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function Dashboard() {
       )}
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           {/* Search Form */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border p-6">

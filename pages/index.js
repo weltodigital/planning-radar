@@ -1,8 +1,12 @@
 import Link from 'next/link'
+import SEOHead from '../components/SEOHead'
+import { analytics } from '../components/Analytics'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <>
+      <SEOHead />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,7 +41,11 @@ export default function Home() {
               placeholder="Enter postcode or area..."
               className="w-full sm:w-80 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <Link href="/signup" className="w-full sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+            <Link
+              href="/signup"
+              className="w-full sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              onClick={() => analytics.trackSignup('free_trial')}
+            >
               Start Free Trial
             </Link>
           </div>
@@ -150,5 +158,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </>
   )
 }

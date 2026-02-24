@@ -319,7 +319,7 @@ export default async function CouncilPage({ params }: CouncilPageProps) {
             '@type': 'WebPage',
             name: `${councilName} Planning Applications`,
             description: `Latest planning applications from ${councilName}. Real-time planning data and development tracking.`,
-            url: `https://planningradar.co.uk/planning-applications/${council}`,
+            url: `https://planningradar.com/planning-applications/${council}`,
             mainEntity: {
               '@type': 'GovernmentOrganization',
               name: councilName,
@@ -335,19 +335,19 @@ export default async function CouncilPage({ params }: CouncilPageProps) {
                   '@type': 'ListItem',
                   position: 1,
                   name: 'Home',
-                  item: 'https://planningradar.co.uk'
+                  item: 'https://planningradar.com'
                 },
                 {
                   '@type': 'ListItem',
                   position: 2,
                   name: 'Planning Applications',
-                  item: 'https://planningradar.co.uk/planning-applications'
+                  item: 'https://planningradar.com/planning-applications'
                 },
                 {
                   '@type': 'ListItem',
                   position: 3,
                   name: councilName,
-                  item: `https://planningradar.co.uk/planning-applications/${council}`
+                  item: `https://planningradar.com/planning-applications/${council}`
                 }
               ]
             }

@@ -194,7 +194,7 @@ export default async function PlanningApplicationsPage() {
             '@type': 'CollectionPage',
             name: 'UK Planning Applications by Council',
             description: 'Browse planning applications from over 268 UK councils and local authorities.',
-            url: 'https://planningradar.co.uk/planning-applications',
+            url: 'https://planningradar.com/planning-applications',
             mainEntity: {
               '@type': 'ItemList',
               name: 'UK Council Planning Applications',
@@ -206,7 +206,7 @@ export default async function PlanningApplicationsPage() {
                 item: {
                   '@type': 'WebPage',
                   name: `${formatCouncilName(council.name)} Planning Applications`,
-                  url: `https://planningradar.co.uk/planning-applications/${council.name}`,
+                  url: `https://planningradar.com/planning-applications/${council.name}`,
                   description: `Planning applications from ${formatCouncilName(council.name)}`
                 }
               }))

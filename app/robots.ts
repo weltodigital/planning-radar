@@ -14,6 +14,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: 'https://planningradar.co.uk/sitemap.xml',
+    sitemap: 'https://planningradar.com/sitemap.xml',
   }
 }

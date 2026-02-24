@@ -295,7 +295,7 @@ export default function PricingPage() {
         <div className="mt-20 text-center">
           <p className="text-gray-600 text-lg">
             Questions about pricing?
-            <a href="mailto:support@planningradar.co.uk" className="text-blue-600 hover:text-blue-700 font-semibold ml-2 transition-colors duration-200">
+            <a href="mailto:support@planningradar.com" className="text-blue-600 hover:text-blue-700 font-semibold ml-2 transition-colors duration-200">
               Contact our support team
             </a>
           </p>

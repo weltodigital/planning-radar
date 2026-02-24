@@ -338,8 +338,8 @@ export async function getSyncStats(): Promise<{
     return {
       totalApplications: totalApplications || 0,
       totalLPAs: totalLPAs || 0,
-      lastSyncDate: lastSync?.last_synced_at || null,
-      recentSyncs: recentSyncs?.map(sync => ({
+      lastSyncDate: (lastSync as any)?.last_synced_at || null,
+      recentSyncs: (recentSyncs as any[])?.map(sync => ({
         lpaName: sync.lpa_name,
         lastSynced: sync.last_synced_at,
         applicationsFetched: sync.applications_fetched,

@@ -18,16 +18,16 @@ export async function getUserPlan(userId: string): Promise<Plan> {
     }
 
     // Check if it's a free trial and if it has expired
-    if (subscription.plan === 'free_trial') {
-      if (isTrialExpired(subscription.trial_ends_at)) {
+    if ((subscription as any).plan === 'free_trial') {
+      if (isTrialExpired((subscription as any).trial_ends_at)) {
         return 'expired'
       }
       return 'free_trial'
     }
 
     // Check if the subscription is active
-    if (subscription.status === 'active') {
-      return subscription.plan as Plan
+    if ((subscription as any).status === 'active') {
+      return (subscription as any).plan as Plan
     }
 
     // Any other status (canceled, past_due, etc.) is considered expired

@@ -242,7 +242,8 @@ export default function ApplicantSearch() {
               <span className="text-sm text-gray-600">{mockUser.email}</span>
             </div>
           </div>
-        </nav>
+        </div>
+      </nav>
 
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -387,5 +388,4 @@ export default function ApplicantSearch() {
         </div>
       </div>
     )
-  )
 }

@@ -177,7 +177,7 @@ export async function geocodePostcodesBatch(postcodes: string[]): Promise<Map<st
     // Build map of cached results
     const cachedMap = new Map<string, GeocodeResult>()
     if (cached) {
-      for (const item of cached) {
+      for (const item of (cached as any[])) {
         cachedMap.set(item.postcode, {
           lat: Number(item.lat),
           lng: Number(item.lng)

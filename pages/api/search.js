@@ -97,8 +97,8 @@ export default async function handler(req, res) {
     }
 
     if (keyword && userPlan !== 'free_trial') {
-      // Full-text search on title and address
-      query = query.or(`title.ilike.%${keyword}%,address.ilike.%${keyword}%`)
+      // Enhanced full-text search on title, description, and address
+      query = query.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,address.ilike.%${keyword}%,application_details.ilike.%${keyword}%`)
     }
 
     // Apply plan limits
@@ -137,22 +137,44 @@ export default async function handler(req, res) {
       totalQuery = totalQuery.ilike('decision', `%${status}%`)
     }
     if (keyword && userPlan !== 'free_trial') {
-      totalQuery = totalQuery.or(`title.ilike.%${keyword}%,address.ilike.%${keyword}%`)
+      totalQuery = totalQuery.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,address.ilike.%${keyword}%,application_details.ilike.%${keyword}%`)
     }
 
     const { count: totalCount } = await totalQuery
 
-    // Format results
+    // Format results with rich fields
     const formattedApplications = (applications || []).map(app => ({
       id: app.id,
       title: app.title,
+      description: app.description, // NEW: Full planning description
       address: app.address,
       postcode: app.postcode,
       council: app.lpa_name,
+      ward: app.ward, // NEW: Council ward
       status: app.decision || 'Pending',
       date_validated: app.date_validated,
       applicant: app.applicant_name,
-      type: app.application_type
+      agent: app.agent_name, // NEW: Agent name
+      type: app.application_type,
+      development_type: app.development_type, // NEW: Development type
+      application_type_full: app.application_type_full, // NEW: Full application type
+
+      // Links
+      url_planning_app: app.url_planning_app, // NEW: Direct link to council portal
+
+      // Timeline
+      decision_date: app.date_decision, // NEW: Decision date
+      decision_target_date: app.decision_target_date, // NEW: Target decision date
+
+      // Appeal info
+      appeal_status: app.appeal_status, // NEW: Appeal status if any
+
+      // Location details
+      uprn: app.uprn, // NEW: Unique Property Reference Number
+      locality: app.locality, // NEW: Area/neighborhood
+
+      // For backwards compatibility, keep existing fields
+      type: app.development_type || app.application_type || 'Planning Application'
     }))
 
     // Response

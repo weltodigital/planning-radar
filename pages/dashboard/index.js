@@ -247,14 +247,39 @@ export default function Dashboard() {
             <div className="space-y-4">
               {searchResults.applications.map((app) => (
                 <div key={app.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-medium text-gray-900">{app.title}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.status)}`}>
-                      {app.status}
-                    </span>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1 mr-4">
+                      {/* Rich Planning Description */}
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {app.description || app.title}
+                      </h3>
+                      {/* Rich Address */}
+                      <p className="text-gray-600 mb-2">{app.address}</p>
+                      {app.ward && (
+                        <p className="text-sm text-gray-500 mb-2">Ward: {app.ward}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end space-y-2">
+                      {/* Status Badge */}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.status)}`}>
+                        {app.status}
+                      </span>
+                      {/* Council Portal Link */}
+                      {app.url_planning_app && (
+                        <a
+                          href={app.url_planning_app}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          View on Council Website →
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-gray-600 mb-2">{app.address}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-500">
+
+                  {/* Rich Metadata Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-500 border-t border-gray-100 pt-3">
                     <div>
                       <span className="font-medium">Council:</span> {app.council}
                     </div>
@@ -262,12 +287,33 @@ export default function Dashboard() {
                       <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
                     </div>
                     <div>
-                      <span className="font-medium">Type:</span> {app.type}
+                      <span className="font-medium">Type:</span> {app.development_type || app.type || 'Planning Application'}
                     </div>
                     <div>
-                      <span className="font-medium">Applicant:</span> {app.applicant}
+                      <span className="font-medium">Applicant:</span> {app.applicant || 'Not specified'}
                     </div>
                   </div>
+
+                  {/* Additional Rich Fields */}
+                  {(app.decision_target_date || app.appeal_status) && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-500 mt-2 pt-2 border-t border-gray-50">
+                      {app.decision_target_date && (
+                        <div>
+                          <span className="font-medium">Target Decision:</span> {new Date(app.decision_target_date).toLocaleDateString()}
+                        </div>
+                      )}
+                      {app.appeal_status && (
+                        <div>
+                          <span className="font-medium">Appeal:</span> {app.appeal_status}
+                        </div>
+                      )}
+                      {app.uprn && (
+                        <div>
+                          <span className="font-medium">UPRN:</span> {app.uprn}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

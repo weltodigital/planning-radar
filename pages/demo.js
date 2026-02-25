@@ -1,64 +1,46 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createServiceClient } from '../lib/supabase/pages-client'
 
+// Get councils for dropdown at build time
 export async function getStaticProps() {
-  try {
-    const supabase = createServiceClient()
-
-    // Get sample applications for demo (limit to 50 for performance)
-    const { data: sampleApplications, error } = await supabase
-      .from('planning_applications')
-      .select('id, title, address, lpa_name, date_validated, decision, application_type')
-      .order('date_validated', { ascending: false })
-      .limit(50)
-
-    if (error) {
-      console.error('Error fetching sample applications:', error)
-    }
-
-    // Get unique councils for dropdown
-    const { data: councils } = await supabase
-      .from('planning_applications')
-      .select('lpa_name')
-      .group('lpa_name')
-      .order('lpa_name')
-      .limit(20) // Limit for demo
-
-    return {
-      props: {
-        sampleApplications: sampleApplications || [],
-        councils: councils || []
-      },
-      revalidate: 3600 // Revalidate every hour
-    }
-  } catch (error) {
-    console.error('Error in getStaticProps:', error)
-    return {
-      props: {
-        sampleApplications: [],
-        councils: []
-      },
-      revalidate: 3600
-    }
+  // Return empty props - we'll fetch data client-side using the search API
+  return {
+    props: {
+      councils: [
+        { lpa_name: 'Camden' },
+        { lpa_name: 'Westminster' },
+        { lpa_name: 'Southwark' },
+        { lpa_name: 'Lambeth' },
+        { lpa_name: 'Islington' },
+        { lpa_name: 'Hackney' },
+        { lpa_name: 'Tower Hamlets' },
+        { lpa_name: 'Greenwich' },
+        { lpa_name: 'Kensington and Chelsea' },
+        { lpa_name: 'Hammersmith and Fulham' }
+      ]
+    },
+    revalidate: 86400 // Revalidate daily
   }
 }
 
 function getStatusBadgeColor(status) {
   switch (status?.toLowerCase()) {
     case 'approved':
-      return 'bg-success/10 text-success'
+      return 'bg-green-100 text-green-800'
     case 'refused':
-      return 'bg-danger/10 text-danger'
+      return 'bg-red-100 text-red-800'
     case 'pending':
-      return 'bg-warning/10 text-warning'
+    case 'application received':
+      return 'bg-yellow-100 text-yellow-800'
     default:
-      return 'bg-muted/10 text-muted'
+      return 'bg-gray-100 text-gray-800'
   }
 }
 
-export default function Demo({ sampleApplications, councils }) {
-  const [filteredApplications, setFilteredApplications] = useState(sampleApplications.slice(0, 10))
+export default function Demo({ councils }) {
+  const [applications, setApplications] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filters, setFilters] = useState({
     council: '',
     keyword: '',
@@ -66,40 +48,57 @@ export default function Demo({ sampleApplications, councils }) {
   })
   const [showUpgrade, setShowUpgrade] = useState(false)
 
-  const handleSearch = () => {
-    let filtered = [...sampleApplications]
+  const fetchApplications = async () => {
+    setLoading(true)
+    setError('')
 
-    // Apply filters
-    if (filters.council) {
-      filtered = filtered.filter(app =>
-        app.lpa_name?.toLowerCase().includes(filters.council.toLowerCase())
-      )
-    }
+    try {
+      const params = new URLSearchParams()
 
-    if (filters.keyword) {
-      filtered = filtered.filter(app =>
-        app.title?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-        app.address?.toLowerCase().includes(filters.keyword.toLowerCase())
-      )
-    }
+      // Apply filters
+      if (filters.council) params.append('council', filters.council)
+      if (filters.keyword) params.append('keyword', filters.keyword)
+      if (filters.status) params.append('status', filters.status)
 
-    if (filters.status) {
-      filtered = filtered.filter(app =>
-        app.decision?.toLowerCase() === filters.status.toLowerCase()
-      )
-    }
+      // Always limit to 10 for demo
+      params.append('limit', '10')
 
-    // Limit to 10 for demo (simulating free trial)
-    setFilteredApplications(filtered.slice(0, 10))
+      const response = await fetch(`/api/search?${params.toString()}`, {
+        headers: {
+          'X-Demo-Mode': 'true'
+        }
+      })
+      const data = await response.json()
 
-    // Show upgrade prompt if more results available
-    if (filtered.length > 10) {
-      setShowUpgrade(true)
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch applications')
+      }
+
+      setApplications(data.applications || [])
+
+      // Show upgrade prompt if there are more results available
+      if (data.pagination.total > 10) {
+        setShowUpgrade(true)
+      } else {
+        setShowUpgrade(false)
+      }
+
+    } catch (err) {
+      console.error('Search error:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
+  // Load initial data on component mount
   useEffect(() => {
-    handleSearch()
+    fetchApplications()
+  }, [])
+
+  // Refetch when filters change
+  useEffect(() => {
+    fetchApplications()
   }, [filters])
 
   return (
@@ -229,37 +228,83 @@ export default function Demo({ sampleApplications, councils }) {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-lg">
                 <div className="p-8 border-b border-slate-100">
                   <h3 className="text-lg font-semibold text-secondary">
-                    Demo Results ({filteredApplications.length})
+                    {loading ? 'Loading...' : `Demo Results (${applications.length})`}
                   </h3>
                   <p className="text-sm text-secondary-light mt-1">
-                    Showing sample data from our planning application database
+                    {loading ? 'Fetching live planning application data...' : 'Real planning data from London boroughs'}
                   </p>
                 </div>
 
                 <div className="divide-y divide-slate-100">
-                  {filteredApplications.length === 0 ? (
+                  {loading ? (
+                    <div className="p-8">
+                      <div className="space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : error ? (
+                    <div className="p-8 text-center">
+                      <div className="text-red-600 mb-2">
+                        <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="font-medium">Error loading applications</p>
+                      </div>
+                      <p className="text-sm text-gray-600">{error}</p>
+                      <button
+                        onClick={fetchApplications}
+                        className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  ) : applications.length === 0 ? (
                     <div className="p-8 text-center text-secondary-light">
-                      <p>No applications found matching your criteria.</p>
-                      <p className="text-sm mt-2">Try adjusting your filters or search terms.</p>
+                      <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.005-5.707-2.707l1.414-1.414C8.586 11.758 10.169 12.5 12 12.5s3.414-.742 4.293-1.621L17.707 12.293A7.962 7.962 0 0112 15z" />
+                      </svg>
+                      <p className="font-medium">No applications found</p>
+                      <p className="text-sm mt-1">Try adjusting your search filters</p>
                     </div>
                   ) : (
-                    filteredApplications.map((app) => (
+                    applications.map((app) => (
                       <div key={app.id} className="p-6 hover:bg-slate-50/50 transition-colors duration-200">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-lg font-medium text-secondary flex-1 mr-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="text-lg font-medium text-secondary flex-1 mr-4 leading-tight">
                             {app.title}
                           </h4>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.decision)}`}>
-                            {app.decision || 'Pending'}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeColor(app.status)}`}>
+                            {app.status || 'Pending'}
                           </span>
                         </div>
 
-                        <p className="text-secondary-light mb-2">{app.address}</p>
+                        {app.address && (
+                          <p className="text-secondary-light mb-3">{app.address}</p>
+                        )}
 
-                        <div className="flex flex-wrap gap-4 text-sm text-secondary-light">
-                          <span><strong>Council:</strong> {app.lpa_name}</span>
-                          <span><strong>Date:</strong> {new Date(app.date_validated).toLocaleDateString()}</span>
-                          {app.application_type && <span><strong>Type:</strong> {app.application_type}</span>}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-secondary-light">
+                          <div>
+                            <span className="font-medium">Council:</span> {app.council}
+                          </div>
+                          <div>
+                            <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
+                          </div>
+                          {app.type && (
+                            <div>
+                              <span className="font-medium">Type:</span> {app.type}
+                            </div>
+                          )}
+                          {app.applicant && (
+                            <div>
+                              <span className="font-medium">Applicant:</span> {app.applicant}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))

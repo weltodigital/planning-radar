@@ -56,8 +56,9 @@ export default async function handler(req, res) {
     const userId = null // Get from auth session
     const userPlan = await getUserPlan(userId)
 
-    // Check keyword restriction for free trial
-    if (keyword && userPlan === 'free_trial') {
+    // Check keyword restriction for free trial (allow for demo with very limited results)
+    const isDemo = req.headers['x-demo-mode'] === 'true'
+    if (keyword && userPlan === 'free_trial' && !isDemo) {
       return res.status(403).json({
         error: 'Keyword search requires Pro or Premium plan',
         upgrade_required: true

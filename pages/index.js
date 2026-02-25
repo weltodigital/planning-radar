@@ -113,7 +113,7 @@ export default function Home({ latestApplications }) {
               <span className="text-3xl">🔍</span>
             </div>
             <h3 className="text-2xl font-bold text-secondary mb-4">Search</h3>
-            <p className="text-lg text-secondary-light leading-relaxed">Enter any UK postcode or council area to find planning applications</p>
+            <p className="text-lg text-secondary-light leading-relaxed">Enter any London postcode or borough to find planning applications</p>
           </div>
 
           <div className="text-center">

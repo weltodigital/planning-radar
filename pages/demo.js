@@ -24,17 +24,58 @@ export async function getStaticProps() {
 }
 
 function getStatusBadgeColor(status) {
-  switch (status?.toLowerCase()) {
-    case 'approved':
-      return 'bg-green-100 text-green-800'
-    case 'refused':
-      return 'bg-red-100 text-red-800'
-    case 'pending':
-    case 'application received':
-      return 'bg-yellow-100 text-yellow-800'
-    default:
-      return 'bg-gray-100 text-gray-800'
+  const statusLower = status?.toLowerCase() || ''
+
+  // Approved/Granted statuses - Green #22C55E
+  if (statusLower.includes('approved') || statusLower.includes('granted') ||
+      statusLower.includes('consent') || statusLower.includes('permission granted')) {
+    return 'text-white font-medium'
+    // Custom style will be applied inline for exact color match
   }
+
+  // Refused/Rejected statuses - Red #EF4444
+  if (statusLower.includes('refused') || statusLower.includes('rejected') ||
+      statusLower.includes('dismissed') || statusLower.includes('declined')) {
+    return 'text-white font-medium'
+    // Custom style will be applied inline for exact color match
+  }
+
+  // Withdrawn statuses - Grey #9CA3AF
+  if (statusLower.includes('withdrawn') || statusLower.includes('cancelled') ||
+      statusLower.includes('invalid') || statusLower.includes('lapsed')) {
+    return 'text-white font-medium'
+    // Custom style will be applied inline for exact color match
+  }
+
+  // Pending/Under Consideration statuses - Amber #F59E0B (default)
+  // Includes: pending, under consideration, received, awaiting, etc.
+  return 'text-white font-medium'
+  // Custom style will be applied inline for exact color match
+}
+
+function getStatusBackgroundColor(status) {
+  const statusLower = status?.toLowerCase() || ''
+
+  // Approved/Granted - Green #22C55E
+  if (statusLower.includes('approved') || statusLower.includes('granted') ||
+      statusLower.includes('consent') || statusLower.includes('permission granted')) {
+    return '#22C55E'
+  }
+
+  // Refused/Rejected - Red #EF4444
+  if (statusLower.includes('refused') || statusLower.includes('rejected') ||
+      statusLower.includes('dismissed') || statusLower.includes('declined')) {
+    return '#EF4444'
+  }
+
+  // Withdrawn - Grey #9CA3AF
+  if (statusLower.includes('withdrawn') || statusLower.includes('cancelled') ||
+      statusLower.includes('invalid') || statusLower.includes('lapsed')) {
+    return '#9CA3AF'
+  }
+
+  // Pending/Under Consideration - Amber #F59E0B (default)
+  return '#F59E0B'
 }
 
 export default function Demo({ councils }) {
@@ -279,30 +320,86 @@ export default function Demo({ councils }) {
                           <h4 className="text-lg font-medium text-secondary flex-1 mr-4 leading-tight">
                             {app.title}
                           </h4>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBadgeColor(app.status)}`}>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${getStatusBadgeColor(app.status)}`}
+                            style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
+                          >
                             {app.status || 'Pending'}
                           </span>
                         </div>
 
-                        {app.address && (
+                        {app.address ? (
                           <p className="text-secondary-light mb-3">{app.address}</p>
+                        ) : (
+                          <p className="text-secondary-light/60 mb-3 italic">Address not available</p>
                         )}
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-secondary-light">
-                          <div>
-                            <span className="font-medium">Council:</span> {app.council}
+                        <div className="space-y-3">
+                          {/* Professional Fields Row 1 */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            {app.reference && (
+                              <div className="flex items-center px-3 py-2 bg-primary/5 rounded-lg">
+                                <svg className="w-4 h-4 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <span className="font-medium text-primary">Ref:</span>
+                                <span className="ml-1 text-secondary">{app.reference}</span>
+                              </div>
+                            )}
+                            {app.ward && (
+                              <div className="flex items-center px-3 py-2 bg-secondary/5 rounded-lg">
+                                <svg className="w-4 h-4 text-secondary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                <span className="font-medium text-secondary">Ward:</span>
+                                <span className="ml-1 text-secondary">{app.ward}</span>
+                              </div>
+                            )}
+                            {app.decision_target_date && (
+                              <div className="flex items-center px-3 py-2 bg-accent/10 rounded-lg">
+                                <svg className="w-4 h-4 text-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="font-medium text-accent">Due:</span>
+                                <span className="ml-1 text-secondary">{new Date(app.decision_target_date).toLocaleDateString()}</span>
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
-                          </div>
-                          {app.type && (
+
+                          {/* Basic Details Row */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-secondary-light">
                             <div>
-                              <span className="font-medium">Type:</span> {app.type}
+                              <span className="font-medium">Council:</span> {app.council}
                             </div>
-                          )}
-                          {app.applicant && (
                             <div>
-                              <span className="font-medium">Applicant:</span> {app.applicant}
+                              <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
+                            </div>
+                            {app.type && (
+                              <div>
+                                <span className="font-medium">Type:</span> {app.type}
+                              </div>
+                            )}
+                            {app.applicant && (
+                              <div>
+                                <span className="font-medium">Applicant:</span> {app.applicant}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Council Portal Link */}
+                          {app.url_planning_app && (
+                            <div className="pt-2">
+                              <a
+                                href={app.url_planning_app}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-primary hover:text-primary-dark transition-colors duration-200"
+                              >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                View on Council Portal
+                              </a>
                             </div>
                           )}
                         </div>

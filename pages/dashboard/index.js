@@ -94,12 +94,32 @@ export default function Dashboard() {
   }
 
   const getStatusBadgeColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'approved': return 'bg-green-100 text-green-800'
-      case 'refused': return 'bg-red-100 text-red-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
+    return 'text-white font-medium'
+  }
+
+  const getStatusBackgroundColor = (status) => {
+    const statusLower = status?.toLowerCase() || ''
+
+    // Approved/Granted - Green #22C55E
+    if (statusLower.includes('approved') || statusLower.includes('granted') ||
+        statusLower.includes('consent') || statusLower.includes('permission granted')) {
+      return '#22C55E'
     }
+
+    // Refused/Rejected - Red #EF4444
+    if (statusLower.includes('refused') || statusLower.includes('rejected') ||
+        statusLower.includes('dismissed') || statusLower.includes('declined')) {
+      return '#EF4444'
+    }
+
+    // Withdrawn - Grey #9CA3AF
+    if (statusLower.includes('withdrawn') || statusLower.includes('cancelled') ||
+        statusLower.includes('invalid') || statusLower.includes('lapsed')) {
+      return '#9CA3AF'
+    }
+
+    // Pending/Under Consideration - Amber #F59E0B (default)
+    return '#F59E0B'
   }
 
   if (loading) {
@@ -261,7 +281,10 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-col items-end space-y-2">
                       {/* Status Badge */}
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.status)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeColor(app.status)}`}
+                        style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
+                      >
                         {app.status}
                       </span>
                       {/* Council Portal Link */}

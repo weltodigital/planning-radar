@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     const supabase = createServiceClient()
     let query = supabase
       .from('planning_applications')
-      .select('id, title, address, postcode, lpa_name, decision, date_validated, applicant_name, application_type')
+      .select('id, external_id, title, description, address, postcode, lpa_name, ward, decision, date_validated, date_decision, decision_target_date, applicant_name, agent_name, application_type, development_type, application_type_full, url_planning_app, appeal_status, uprn, locality, site_name, site_number, street_name')
       .order('date_validated', { ascending: false })
 
     // Apply filters
@@ -144,39 +144,59 @@ export default async function handler(req, res) {
     const { count: totalCount } = await totalQuery
 
     // Format results with rich fields
-    const formattedApplications = (applications || []).map(app => ({
-      id: app.id,
-      title: app.title,
-      description: app.description, // NEW: Full planning description
-      address: app.address,
-      postcode: app.postcode,
-      council: app.lpa_name,
-      ward: app.ward, // NEW: Council ward
-      status: app.decision || 'Pending',
-      date_validated: app.date_validated,
-      applicant: app.applicant_name,
-      agent: app.agent_name, // NEW: Agent name
-      type: app.application_type,
-      development_type: app.development_type, // NEW: Development type
-      application_type_full: app.application_type_full, // NEW: Full application type
+    const formattedApplications = (applications || []).map(app => {
+      // Build address if main address is empty
+      let displayAddress = app.address
+      if (!displayAddress && (app.site_number || app.street_name || app.site_name)) {
+        const addressParts = []
+        if (app.site_name) {
+          addressParts.push(app.site_name)
+        } else if (app.site_number) {
+          addressParts.push(app.site_number)
+        }
+        if (app.street_name) {
+          addressParts.push(app.street_name)
+        }
+        displayAddress = addressParts.join(', ') || null
+      }
 
-      // Links
-      url_planning_app: app.url_planning_app, // NEW: Direct link to council portal
+      return {
+        id: app.id,
+        reference: app.external_id, // NEW: Application reference number
+        title: app.title,
+        description: app.description, // NEW: Full planning description
+        address: displayAddress,
+        postcode: app.postcode,
+        council: app.lpa_name,
+        ward: app.ward, // NEW: Council ward
+        status: app.decision || 'Pending',
+        date_validated: app.date_validated,
+        applicant: app.applicant_name,
+        agent: app.agent_name, // NEW: Agent name
+        type: app.development_type || app.application_type || 'Planning Application',
+        development_type: app.development_type, // NEW: Development type
+        application_type_full: app.application_type_full, // NEW: Full application type
 
-      // Timeline
-      decision_date: app.date_decision, // NEW: Decision date
-      decision_target_date: app.decision_target_date, // NEW: Target decision date
+        // Links
+        url_planning_app: app.url_planning_app, // NEW: Direct link to council portal
 
-      // Appeal info
-      appeal_status: app.appeal_status, // NEW: Appeal status if any
+        // Timeline
+        decision_date: app.date_decision, // NEW: Decision date
+        decision_target_date: app.decision_target_date, // NEW: Target decision date
 
-      // Location details
-      uprn: app.uprn, // NEW: Unique Property Reference Number
-      locality: app.locality, // NEW: Area/neighborhood
+        // Appeal info
+        appeal_status: app.appeal_status, // NEW: Appeal status if any
 
-      // For backwards compatibility, keep existing fields
-      type: app.development_type || app.application_type || 'Planning Application'
-    }))
+        // Location details
+        uprn: app.uprn, // NEW: Unique Property Reference Number
+        locality: app.locality, // NEW: Area/neighborhood
+
+        // Address components for building rich addresses
+        site_name: app.site_name,
+        site_number: app.site_number,
+        street_name: app.street_name
+      }
+    })
 
     // Response
     return res.status(200).json({

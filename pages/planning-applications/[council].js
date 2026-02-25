@@ -123,16 +123,32 @@ export async function getStaticProps({ params }) {
 }
 
 function getStatusBadgeColor(status) {
-  switch (status?.toLowerCase()) {
-    case 'approved':
-      return 'bg-success/10 text-success'
-    case 'refused':
-      return 'bg-danger/10 text-danger'
-    case 'pending':
-      return 'bg-warning/10 text-warning'
-    default:
-      return 'bg-muted/10 text-muted'
+  return 'text-white font-medium'
+}
+
+function getStatusBackgroundColor(status) {
+  const statusLower = status?.toLowerCase() || ''
+
+  // Approved/Granted - Green #22C55E
+  if (statusLower.includes('approved') || statusLower.includes('granted') ||
+      statusLower.includes('consent') || statusLower.includes('permission granted')) {
+    return '#22C55E'
   }
+
+  // Refused/Rejected - Red #EF4444
+  if (statusLower.includes('refused') || statusLower.includes('rejected') ||
+      statusLower.includes('dismissed') || statusLower.includes('declined')) {
+    return '#EF4444'
+  }
+
+  // Withdrawn - Grey #9CA3AF
+  if (statusLower.includes('withdrawn') || statusLower.includes('cancelled') ||
+      statusLower.includes('invalid') || statusLower.includes('lapsed')) {
+    return '#9CA3AF'
+  }
+
+  // Pending/Under Consideration - Amber #F59E0B (default)
+  return '#F59E0B'
 }
 
 export default function CouncilPage({ councilName, councilSlug, applications, stats }) {
@@ -273,7 +289,10 @@ export default function CouncilPage({ councilName, councilSlug, applications, st
                           {app.application_type || 'N/A'}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(app.decision)}`}>
+                          <span
+                            className={`inline-flex px-3 py-1 rounded-full text-xs ${getStatusBadgeColor(app.decision)}`}
+                            style={{ backgroundColor: getStatusBackgroundColor(app.decision) }}
+                          >
                             {app.decision || 'Pending'}
                           </span>
                         </td>

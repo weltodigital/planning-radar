@@ -179,7 +179,7 @@ export default function ApplicantSearch() {
                   href="/pricing"
                   className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700"
                 >
-                  Upgrade to Premium - £199/mo
+                  Upgrade to Premium - £299/mo
                 </Link>
                 <Link
                   href="/dashboard"

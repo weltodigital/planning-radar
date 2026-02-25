@@ -71,11 +71,11 @@ export default function Home({ latestApplications }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
         <div className="text-center">
           <h1 className="text-6xl lg:text-7xl font-bold text-secondary mb-8 leading-tight tracking-tight">
-            Track Every UK
+            Track Every London
             <span className="block text-primary">Planning Application</span>
           </h1>
           <p className="text-xl lg:text-2xl text-secondary-light mb-12 max-w-4xl mx-auto leading-relaxed">
-            Find development opportunities before your competitors. Search, filter, and monitor planning applications across the UK with real-time data.
+            Find development opportunities before your competitors. Search, filter, and monitor planning applications across London with real-time data.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-8">
             <input
@@ -138,7 +138,7 @@ export default function Home({ latestApplications }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-secondary mb-6 tracking-tight">Latest Applications Submitted Today</h2>
-          <p className="text-xl text-secondary-light">Live data from planning authorities across the UK</p>
+          <p className="text-xl text-secondary-light">Live data from London boroughs and planning authorities</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
@@ -198,7 +198,7 @@ export default function Home({ latestApplications }) {
             <div className="px-6 py-12 text-center">
               <div className="text-4xl mb-4">🏗️</div>
               <h3 className="text-xl font-semibold text-secondary mb-2">Planning Data Loading</h3>
-              <p className="text-secondary-light mb-6">We're currently syncing the latest planning applications from councils across the UK.</p>
+              <p className="text-secondary-light mb-6">We're currently syncing the latest planning applications from London boroughs.</p>
               <Link href="/signup" className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-lg hover:shadow-xl">
                 Start Free Trial →
               </Link>
@@ -233,7 +233,7 @@ export default function Home({ latestApplications }) {
                 Most Popular
               </div>
               <h3 className="text-xl font-semibold mb-4">Pro</h3>
-              <div className="text-3xl font-bold mb-4">£49 <span className="text-sm font-normal text-gray-500">per month</span></div>
+              <div className="text-3xl font-bold mb-4">£79 <span className="text-sm font-normal text-gray-500">per month</span></div>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>Unlimited results</li>
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>12 months historical data</li>
@@ -248,7 +248,7 @@ export default function Home({ latestApplications }) {
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 hover:shadow-lg transition-shadow duration-300">
               <h3 className="text-xl font-semibold mb-4">Premium</h3>
-              <div className="text-3xl font-bold mb-4">£199 <span className="text-sm font-normal text-gray-500">per month</span></div>
+              <div className="text-3xl font-bold mb-4">£299 <span className="text-sm font-normal text-gray-500">per month</span></div>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>Everything in Pro</li>
                 <li className="flex items-center"><span className="text-green-500 mr-2">✓</span>Unlimited historical data</li>
@@ -269,6 +269,7 @@ export default function Home({ latestApplications }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-muted">&copy; 2024 Planning Radar. All rights reserved.</p>
+            <p className="text-muted text-sm mt-2">Powered by GLA Planning London Datahub</p>
           </div>
         </div>
       </footer>

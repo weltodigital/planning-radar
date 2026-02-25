@@ -334,7 +334,7 @@ export default function CouncilPage({ councilName, councilSlug, applications, st
                   How often is the planning application data updated?
                 </h3>
                 <p className="text-secondary-light leading-relaxed">
-                  Our planning application data is updated daily from official government sources, ensuring you have access to the most recent submissions and decisions from {councilName} and other planning authorities across the UK.
+                  Our planning application data is updated daily from official government sources, ensuring you have access to the most recent submissions and decisions from {councilName} and other London boroughs.
                 </p>
               </div>
 
@@ -355,7 +355,7 @@ export default function CouncilPage({ councilName, councilSlug, applications, st
               href="/planning-applications"
               className="inline-flex items-center text-primary hover:text-primary-dark font-medium text-lg transition-colors duration-200"
             >
-              ← Browse All UK Planning Authorities
+              ← Browse All London Boroughs
             </Link>
           </div>
         </div>

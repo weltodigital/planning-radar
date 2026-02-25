@@ -72,13 +72,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 1. Go to **Products** → **Add product**
 2. **Name:** "Planning Radar Pro"
 3. **Description:** "Unlimited results, 12 months history, keyword filters, full detail, 5 saved searches"
-4. **Price:** £49.00 GBP monthly
+4. **Price:** £79.00 GBP monthly
 5. **Price ID:** Copy this (e.g., `price_1234567890abcdef`)
 
 #### B. Premium Plan Product
 1. **Name:** "Planning Radar Premium"
 2. **Description:** "All Pro features plus unlimited history, unlimited saved searches, CSV export, applicant search"
-3. **Price:** £199.00 GBP monthly
+3. **Price:** £299.00 GBP monthly
 4. **Price ID:** Copy this (e.g., `price_0987654321fedcba`)
 
 **Add to .env.local:**

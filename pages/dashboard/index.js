@@ -141,7 +141,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">Search and track UK planning applications</p>
+          <p className="mt-2 text-gray-600">Search and track London planning applications</p>
         </div>
 
         {/* Search Section */}
@@ -183,7 +183,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Council (Alternative to postcode)
+                  Borough (Alternative to postcode)
                 </label>
                 <select
                   value={searchForm.council}

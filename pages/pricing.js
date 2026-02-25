@@ -117,7 +117,7 @@ export default function Pricing() {
               <h3 className="text-2xl font-semibold text-secondary">Pro</h3>
               <p className="mt-4 text-secondary-light">For growing property businesses</p>
               <div className="mt-6">
-                <span className="text-4xl font-bold text-secondary">£49</span>
+                <span className="text-4xl font-bold text-secondary">£79</span>
                 <span className="text-muted ml-1">per month</span>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function Pricing() {
               <h3 className="text-2xl font-semibold text-secondary">Premium</h3>
               <p className="mt-4 text-secondary-light">For professional developers and agencies</p>
               <div className="mt-6">
-                <span className="text-4xl font-bold text-secondary">£199</span>
+                <span className="text-4xl font-bold text-secondary">£299</span>
                 <span className="text-muted ml-1">per month</span>
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function Pricing() {
 
               <div>
                 <h3 className="text-lg font-semibold text-secondary mb-2">What data sources do you use?</h3>
-                <p className="text-secondary-light">We pull data daily from the official UK Planning API (api.planning.org.uk) covering all local planning authorities across England and Wales.</p>
+                <p className="text-secondary-light">We pull data daily from the GLA Planning London Datahub covering all 35 London boroughs and planning authorities.</p>
               </div>
 
               <div>
@@ -236,6 +236,7 @@ export default function Pricing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-muted">&copy; 2024 Planning Radar. All rights reserved.</p>
+            <p className="text-muted text-sm mt-2">Powered by GLA Planning London Datahub</p>
           </div>
         </div>
       </footer>

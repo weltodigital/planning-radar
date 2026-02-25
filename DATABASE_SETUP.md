@@ -34,7 +34,7 @@ After running the script, you should see these tables in your database:
 ### Core Tables
 
 **planning_applications**
-- Stores all UK planning application data
+- Stores all London planning application data
 - PostGIS geography column for radius searches
 - Full-text search on application titles
 - Comprehensive indexes for fast queries

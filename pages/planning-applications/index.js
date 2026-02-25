@@ -66,8 +66,8 @@ export default function PlanningApplicationsIndex({ councils }) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": "UK Planning Applications by Council",
-    "description": "Browse planning applications by local authority across the UK. Track development opportunities and planning decisions.",
+    "name": "London Planning Applications by Borough",
+    "description": "Browse planning applications by borough across London. Track development opportunities and planning decisions.",
     "url": "https://planningradar.co.uk/planning-applications",
     "mainEntity": {
       "@type": "ItemList",
@@ -87,10 +87,10 @@ export default function PlanningApplicationsIndex({ councils }) {
   return (
     <>
       <head>
-        <title>UK Planning Applications by Council | Planning Radar</title>
+        <title>London Planning Applications by Borough | Planning Radar</title>
         <meta
           name="description"
-          content="Browse planning applications by local authority across the UK. Track development opportunities, monitor approval rates, and stay informed about planning decisions in your area."
+          content="Browse planning applications by borough across London. Track development opportunities, monitor approval rates, and stay informed about planning decisions in your area."
         />
         <script
           type="application/ld+json"
@@ -127,10 +127,10 @@ export default function PlanningApplicationsIndex({ councils }) {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl lg:text-5xl font-bold text-secondary mb-6 tracking-tight">
-              UK Planning Applications by Council
+              London Planning Applications by Borough
             </h1>
             <p className="text-xl text-secondary-light max-w-4xl mx-auto leading-relaxed">
-              Browse planning applications by local authority across the UK. Track development opportunities,
+              Browse planning applications by borough across London. Track development opportunities,
               monitor approval rates, and stay informed about planning decisions in your area.
             </p>
           </div>
@@ -155,7 +155,7 @@ export default function PlanningApplicationsIndex({ councils }) {
           <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg mb-12">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-secondary mb-2">Find Your Local Council</h2>
-              <p className="text-secondary-light">Search or browse through all UK planning authorities</p>
+              <p className="text-secondary-light">Search or browse through all London boroughs</p>
             </div>
 
             <div className="max-w-md mx-auto mb-8">
@@ -220,10 +220,10 @@ export default function PlanningApplicationsIndex({ councils }) {
           {/* CTA Section */}
           <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl p-12 text-center">
             <h2 className="text-3xl font-bold text-secondary mb-4">
-              Search All UK Planning Applications
+              Search All London Planning Applications
             </h2>
             <p className="text-xl text-secondary-light mb-8 max-w-3xl mx-auto">
-              Get full access to our comprehensive database of UK planning applications.
+              Get full access to our comprehensive database of London planning applications.
               Search by postcode, filter by status, and track development opportunities across all {councils.length} planning authorities.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -244,7 +244,7 @@ export default function PlanningApplicationsIndex({ councils }) {
 
           {/* SEO Content */}
           <div className="mt-16 prose max-w-none">
-            <h2 className="text-2xl font-bold text-secondary mb-6">About UK Planning Applications</h2>
+            <h2 className="text-2xl font-bold text-secondary mb-6">About London Planning Applications</h2>
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-lg">
                 <h3 className="text-lg font-semibold text-secondary mb-4">Planning Authority Coverage</h3>
@@ -258,7 +258,7 @@ export default function PlanningApplicationsIndex({ councils }) {
                 <h3 className="text-lg font-semibold text-secondary mb-4">Real-Time Data</h3>
                 <p className="text-secondary-light leading-relaxed">
                   Planning application data is updated daily from official government sources, ensuring you have
-                  access to the latest submissions, decisions, and status changes across the UK.
+                  access to the latest submissions, decisions, and status changes across London.
                 </p>
               </div>
 

@@ -108,7 +108,7 @@ export default function Demo({ sampleApplications, councils }) {
         <title>Live Demo - Planning Radar | Try Our Planning Application Search</title>
         <meta
           name="description"
-          content="Try our live demo to search UK planning applications by postcode, council, or keyword. See how Planning Radar helps you find development opportunities."
+          content="Try our live demo to search London planning applications by postcode, borough, or keyword. See how Planning Radar helps you find development opportunities."
         />
       </head>
 
@@ -160,17 +160,17 @@ export default function Demo({ sampleApplications, councils }) {
                 <h2 className="text-xl font-bold text-secondary mb-6">Search Planning Applications</h2>
 
                 <div className="space-y-4">
-                  {/* Council Filter */}
+                  {/* Borough Filter */}
                   <div>
                     <label className="block text-sm font-medium text-secondary mb-1">
-                      Council
+                      Borough
                     </label>
                     <select
                       value={filters.council}
                       onChange={(e) => setFilters(prev => ({ ...prev, council: e.target.value }))}
                       className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
                     >
-                      <option value="">All Councils</option>
+                      <option value="">All Boroughs</option>
                       {councils.slice(0, 10).map(council => (
                         <option key={council.lpa_name} value={council.lpa_name}>
                           {council.lpa_name}
@@ -342,7 +342,7 @@ export default function Demo({ sampleApplications, councils }) {
                   </li>
                 </ul>
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-2">£49</div>
+                  <div className="text-2xl font-bold mb-2">£79</div>
                   <div className="text-sm text-muted">per month</div>
                 </div>
               </div>
@@ -368,7 +368,7 @@ export default function Demo({ sampleApplications, councils }) {
                   </li>
                 </ul>
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-2">£199</div>
+                  <div className="text-2xl font-bold mb-2">£299</div>
                   <div className="text-sm text-muted">per month</div>
                 </div>
               </div>
@@ -396,6 +396,7 @@ export default function Demo({ sampleApplications, councils }) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <p className="text-muted">&copy; 2024 Planning Radar. All rights reserved.</p>
+              <p className="text-muted text-sm mt-2">Powered by GLA Planning London Datahub</p>
             </div>
           </div>
         </footer>

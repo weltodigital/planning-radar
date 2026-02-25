@@ -1,8 +1,8 @@
 import Head from 'next/head'
 
 export default function SEOHead({
-  title = "Planning Radar - UK Planning Applications Search",
-  description = "Find development opportunities before your competitors. Search, filter, and monitor planning applications across the UK with real-time data. 7-day free trial.",
+  title = "Planning Radar - London Planning Applications Search",
+  description = "Find development opportunities before your competitors. Search, filter, and monitor planning applications across London with real-time data. 7-day free trial.",
   canonical = "https://www.planningradar.com",
   ogImage = "https://www.planningradar.com/og-image.png"
 }) {
@@ -39,7 +39,7 @@ export default function SEOHead({
       {/* Additional SEO Meta Tags */}
       <meta name="robots" content="index, follow" />
       <meta name="author" content="Planning Radar" />
-      <meta name="keywords" content="planning applications, UK planning, property development, planning permission, development opportunities, planning search" />
+      <meta name="keywords" content="planning applications, London planning, property development, planning permission, development opportunities, planning search" />
 
       {/* Theme Color */}
       <meta name="theme-color" content="#1e3a5f" />
@@ -63,7 +63,7 @@ export default function SEOHead({
               "priceValidUntil": "2025-12-31",
               "availability": "https://schema.org/InStock",
               "url": canonical,
-              "description": "7-day free trial, then from £49/month"
+              "description": "7-day free trial, then from £79/month"
             },
             "creator": {
               "@type": "Organization",

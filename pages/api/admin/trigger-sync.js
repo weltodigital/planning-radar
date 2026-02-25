@@ -1,17 +1,17 @@
 /**
- * Manual Sync Trigger
- * Allows manual triggering of planning application sync for testing
+ * Manual Sync Trigger for Planning London Datahub
+ * Allows manual triggering of planning application sync for London boroughs
  * Protected with admin secret
  */
 
 import { createServiceClient } from '../../../lib/supabase/pages-client'
 import {
-  fetchLPAs,
-  searchApplications,
+  getLondonBoroughs,
+  getAllApplicationsForBorough,
   mapApplicationToDatabase,
   getInitialSyncDateRange,
   formatDateForAPI
-} from '../../../lib/planning-api'
+} from '../../../lib/planning-london-api'
 
 export default async function handler(req, res) {
   // Verify admin access
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
   // Get options from request body
   const {
-    lpaLimit = 5, // Limit LPAs for testing
+    boroughLimit = 5, // Limit boroughs for testing
     testMode = true // Use smaller date range for testing
   } = req.body
 
@@ -38,28 +38,21 @@ export default async function handler(req, res) {
   const syncResults = []
 
   try {
-    console.log('🧪 Starting manual planning applications sync...')
+    console.log('🏙️ Starting London planning applications sync...')
 
-    // Check if we have a planning API key
-    const planningApiKey = process.env.PLANNING_API_KEY
-    if (!planningApiKey) {
-      throw new Error('PLANNING_API_KEY not configured')
-    }
+    // Get all London boroughs
+    const allBoroughs = getLondonBoroughs()
 
-    // Fetch all LPAs from the planning API
-    console.log('📋 Fetching LPAs from Planning API...')
-    const allLpas = await fetchLPAs(planningApiKey)
+    // Limit boroughs for testing
+    const boroughs = allBoroughs.slice(0, boroughLimit)
+    console.log(`🏛️ Processing ${boroughs.length} boroughs (limited from ${allBoroughs.length} total)`)
 
-    // Limit LPAs for testing
-    const lpas = allLpas.slice(0, lpaLimit)
-    console.log(`📋 Processing ${lpas.length} LPAs (limited from ${allLpas.length} total)`)
-
-    // Process each LPA
-    for (let i = 0; i < lpas.length; i++) {
-      const lpa = lpas[i]
+    // Process each borough
+    for (let i = 0; i < boroughs.length; i++) {
+      const borough = boroughs[i]
 
       try {
-        console.log(`🏛️  Processing LPA ${i + 1}/${lpas.length}: ${lpa.name}`)
+        console.log(`🏙️ Processing borough ${i + 1}/${boroughs.length}: ${borough.name}`)
 
         // Determine date range
         let dateRange
@@ -71,7 +64,7 @@ export default async function handler(req, res) {
           const { data: lastSync } = await supabase
             .from('lpa_sync_log')
             .select('last_synced_at')
-            .eq('lpa_id', lpa.id)
+            .eq('lpa_id', borough.id)
             .single()
 
           if (lastSync?.last_synced_at) {
@@ -86,26 +79,24 @@ export default async function handler(req, res) {
           }
         }
 
-        console.log(`📅 Syncing ${lpa.name} from ${dateRange.from} to ${dateRange.to}`)
+        console.log(`📅 Syncing ${borough.name} from ${dateRange.from} to ${dateRange.to}`)
 
-        // Search for applications
-        const result = await searchApplications(
-          planningApiKey,
-          lpa.id,
+        // Get all applications for this borough
+        const applications = await getAllApplicationsForBorough(
+          borough.name,
           dateRange.from,
-          dateRange.to,
-          true // return full data
+          dateRange.to
         )
 
-        console.log(`📊 Found ${result.applicationCount} applications for ${lpa.name}`)
+        console.log(`📊 Found ${applications.length} applications for ${borough.name}`)
 
         let syncedCount = 0
         let errorCount = 0
 
         // Process each application
-        for (const apiApp of result.applications) {
+        for (const pldApp of applications) {
           try {
-            const dbApp = mapApplicationToDatabase(apiApp, lpa.id, lpa.name)
+            const dbApp = mapApplicationToDatabase(pldApp)
 
             // Upsert into database
             const { error } = await supabase
@@ -131,16 +122,16 @@ export default async function handler(req, res) {
         await supabase
           .from('lpa_sync_log')
           .upsert({
-            lpa_id: lpa.id,
-            lpa_name: lpa.name,
+            lpa_id: borough.id,
+            lpa_name: borough.name,
             last_synced_at: new Date().toISOString(),
-            applications_fetched: result.applicationCount,
+            applications_fetched: applications.length,
             status: errorCount > syncedCount ? 'partial_failure' : 'success'
           })
 
         syncResults.push({
-          lpa: lpa.name,
-          found: result.applicationCount,
+          borough: borough.name,
+          found: applications.length,
           synced: syncedCount,
           errors: errorCount,
           status: 'success'
@@ -149,21 +140,21 @@ export default async function handler(req, res) {
         totalSynced += syncedCount
         totalErrors += errorCount
 
-        console.log(`✅ ${lpa.name}: ${syncedCount} synced, ${errorCount} errors`)
+        console.log(`✅ ${borough.name}: ${syncedCount} synced, ${errorCount} errors`)
 
-        // Rate limiting - wait 1 second between requests for manual testing
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Rate limiting - wait 2 seconds between borough requests
+        await new Promise(resolve => setTimeout(resolve, 2000))
 
-      } catch (lpaError) {
-        console.error(`❌ Failed to sync LPA ${lpa.name}:`, lpaError)
+      } catch (boroughError) {
+        console.error(`❌ Failed to sync borough ${borough.name}:`, boroughError)
 
         syncResults.push({
-          lpa: lpa.name,
+          borough: borough.name,
           found: 0,
           synced: 0,
           errors: 1,
           status: 'error',
-          error: lpaError.message
+          error: boroughError.message
         })
 
         totalErrors++
@@ -173,15 +164,15 @@ export default async function handler(req, res) {
     const endTime = new Date()
     const duration = (endTime - startTime) / 1000
 
-    console.log(`🎉 Manual sync completed in ${duration}s`)
+    console.log(`🎉 London sync completed in ${duration}s`)
     console.log(`📊 Total: ${totalSynced} synced, ${totalErrors} errors`)
 
     return res.status(200).json({
       success: true,
       mode: testMode ? 'test' : 'full',
       summary: {
-        lpas_processed: lpas.length,
-        lpas_total: allLpas.length,
+        boroughs_processed: boroughs.length,
+        boroughs_total: allBoroughs.length,
         total_synced: totalSynced,
         total_errors: totalErrors,
         duration_seconds: Math.round(duration),
@@ -192,7 +183,7 @@ export default async function handler(req, res) {
     })
 
   } catch (error) {
-    console.error('💥 Manual sync failed:', error)
+    console.error('💥 London sync failed:', error)
 
     return res.status(500).json({
       success: false,

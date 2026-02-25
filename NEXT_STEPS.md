@@ -45,8 +45,8 @@ npm run dev
 1. Create/login to Stripe account
 2. Get API keys from **Developers** → **API Keys**
 3. Create two products:
-   - **Pro Plan**: £49/month
-   - **Premium Plan**: £199/month
+   - **Pro Plan**: £79/month
+   - **Premium Plan**: £299/month
 4. Set up webhook endpoint
 5. Update `.env.local` with all Stripe keys
 

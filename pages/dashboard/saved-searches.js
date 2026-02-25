@@ -122,11 +122,11 @@ export default function SavedSearches() {
               </p>
               <div className="grid md:grid-cols-2 gap-4 mb-6">
                 <div className="bg-white rounded border p-4">
-                  <h4 className="font-medium text-gray-900">Pro Plan - £49/mo</h4>
+                  <h4 className="font-medium text-gray-900">Pro Plan - £79/mo</h4>
                   <p className="text-sm text-gray-600 mt-1">Up to 5 saved searches</p>
                 </div>
                 <div className="bg-white rounded border p-4">
-                  <h4 className="font-medium text-gray-900">Premium Plan - £199/mo</h4>
+                  <h4 className="font-medium text-gray-900">Premium Plan - £299/mo</h4>
                   <p className="text-sm text-gray-600 mt-1">Unlimited saved searches</p>
                 </div>
               </div>
@@ -260,12 +260,12 @@ export default function SavedSearches() {
               <p className="text-sm text-gray-500">No saved searches</p>
             </div>
             <div className={`bg-white rounded border p-4 ${mockUser.plan === 'pro' ? 'ring-2 ring-blue-500' : ''}`}>
-              <h4 className="font-medium text-gray-900">Pro - £49/mo</h4>
+              <h4 className="font-medium text-gray-900">Pro - £79/mo</h4>
               <p className="text-2xl font-bold text-blue-600 my-2">5</p>
               <p className="text-sm text-gray-500">Saved searches</p>
             </div>
             <div className={`bg-white rounded border p-4 ${mockUser.plan === 'premium' ? 'ring-2 ring-purple-500' : ''}`}>
-              <h4 className="font-medium text-gray-900">Premium - £199/mo</h4>
+              <h4 className="font-medium text-gray-900">Premium - £299/mo</h4>
               <p className="text-2xl font-bold text-purple-600 my-2">∞</p>
               <p className="text-sm text-gray-500">Unlimited saves</p>
             </div>

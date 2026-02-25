@@ -1,8 +1,8 @@
-# PlanScope — UK Planning Application Tracker SaaS
+# PlanScope — London Planning Application Tracker SaaS
 
 ## Project Overview
 
-A SaaS tool that lets UK property investors, estate agents, developers, and planning consultants search and browse planning applications. Data is pulled daily from the planning API and stored in Supabase (Postgres + PostGIS). Users search, filter, and save searches. Monetised via Stripe with a free trial, Pro (£49/mo), and Premium (£199/mo).
+A SaaS tool that lets London property investors, estate agents, developers, and planning consultants search and browse planning applications. Data is pulled daily from the Planning London Datahub and stored in Supabase (Postgres + PostGIS). Users search, filter, and save searches. Monetised via Stripe with a free trial, Pro (£79/mo), and Premium (£299/mo).
 
 ## Tech Stack
 
@@ -11,7 +11,7 @@ A SaaS tool that lets UK property investors, estate agents, developers, and plan
 - **Payments:** Stripe (Checkout Sessions, Customer Portal, Webhooks)
 - **Hosting:** Vercel
 - **Styling:** Tailwind CSS + shadcn/ui components
-- **Data source:** api.planning.org.uk (REST API)
+- **Data source:** GLA Planning London Datahub (Elasticsearch 7.9 API)
 - **Geocoding:** postcodes.io (free, no API key)
 
 ## Environment Variables Required
@@ -25,7 +25,7 @@ STRIPE_WEBHOOK_SECRET=
 STRIPE_PRO_PRICE_ID=
 STRIPE_PREMIUM_PRICE_ID=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-PLANNING_API_KEY=
+ADMIN_SECRET=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 CRON_SECRET=
 ```
@@ -169,40 +169,37 @@ CREATE TRIGGER trigger_set_location
 
 ### PHASE 3: Data Pipeline
 
-#### 3a: Planning API client
+#### 3a: Planning London Datahub API client
 
-Create `/lib/planning-api.ts`:
+Create `/lib/planning-london-api.js`:
 
-- `generateApiKey(email: string)` → GET `https://api.planning.org.uk/v1/generatekey?email={email}`
-- `fetchLPAs(apiKey: string)` → GET `https://api.planning.org.uk/v1/lpas?key={KEY}`
-- `searchApplications(apiKey: string, lpaId: string, dateFrom: string, dateTo: string, returnData: boolean)` → GET `https://api.planning.org.uk/v1/search?key={KEY}&lpa_id={ID}&date_from={DATE}&date_to={DATE}&return_data={0|1}`
+- `getLondonBoroughs()` → Returns list of 35 London boroughs
+- `searchApplications(boroughName, dateFrom, dateTo, from, size)` → POST `https://planningdata.london.gov.uk/api-guest/applications/_search`
+- `getAllApplicationsForBorough(boroughName, dateFrom, dateTo)` → Paginated fetch of all applications
+- `mapApplicationToDatabase(pldApp)` → Maps Planning London fields to database schema
 
-The API returns:
+The Elasticsearch API uses POST requests with query body:
 ```json
 {
-  "response": {
-    "status": "OK",
-    "application_count": 26,
-    "data": [
-      {
-        "lpa_id": "2",
-        "lpa_name": "chichester",
-        "keyval": "S08U81GYK8S00",
-        "externalLink": "https://...",
-        "title": "Two storey rear extension...",
-        "address": "21 Church Road Epsom Surrey KT17 4DZ",
-        "postcode": "KT17 4DZ",
-        "lat": "51.333349",
-        "lng": "-0.257361",
-        "validated": "2023-10-10",
-        "applicant": "Mr Smith",
-        "agent": "ABC Planning Ltd",
-        "decision": "Approved",
-        "decision_date": "2023-12-01",
-        "type": "Householder"
-      }
-    ]
-  }
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "lpa_name.raw": "Camden" } },
+        {
+          "range": {
+            "valid_date": {
+              "gte": "18/02/2026",
+              "lte": "25/02/2026",
+              "format": "dd/MM/yyyy"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "from": 0,
+  "size": 1000,
+  "_source": ["lpa_name", "lpa_app_no", "proposal", "address", "postcode", "latitude", "longitude", "valid_date", "decision_date", "applicant", "agent", "decision", "status"]
 }
 ```
 
@@ -210,18 +207,19 @@ Map these fields to the `planning_applications` table columns.
 
 #### 3b: Sync cron endpoint
 
-Create `/app/api/cron/sync-applications/route.ts`:
+Create `/pages/api/admin/trigger-sync.js`:
 
-1. Verify `CRON_SECRET` from Authorization header
-2. Fetch all LPAs from the planning API
-3. For each LPA:
-   - Check `lpa_sync_log` for last sync date (default to yesterday if never synced)
-   - Fetch applications since last sync with `return_data=1`
+1. Verify `ADMIN_SECRET` from Authorization header
+2. Get all 35 London boroughs from `getLondonBoroughs()`
+3. For each borough:
+   - Check `lpa_sync_log` for last sync date (default to last 7 days if never synced)
+   - Fetch applications using Elasticsearch queries with date ranges
+   - Map Planning London fields to database schema
    - Upsert into `planning_applications` (ON CONFLICT on `external_id` DO UPDATE)
    - Log result in `lpa_sync_log`
-   - Wait 500ms between LPA requests (rate limiting)
+   - Wait 2s between borough requests (rate limiting)
 4. Use Supabase service role key (not anon key) for writes
-5. Handle errors per-LPA — don't let one failure stop the whole sync
+5. Handle errors per-borough — don't let one failure stop the whole sync
 6. Return summary JSON
 
 #### 3c: Vercel Cron config
@@ -240,7 +238,7 @@ Create `/app/api/cron/sync-applications/route.ts`:
 
 #### 3d: Manual sync trigger
 
-Create `/app/api/admin/trigger-sync/route.ts` — same logic but can be called manually for testing. Protect with a simple admin secret.
+Already created as `/pages/api/admin/trigger-sync.js` — can be called manually for testing with proper admin secret protection.
 
 ---
 
@@ -517,7 +515,7 @@ Three-column pricing cards:
 - Basic application info
 - CTA: "Start Free Trial"
 
-**Pro — £49/mo:** (highlight this as "Most Popular")
+**Pro — £79/mo:** (highlight this as "Most Popular")
 - Everything in Free Trial, plus:
 - Unlimited results
 - 12 months of historical data
@@ -526,7 +524,7 @@ Three-column pricing cards:
 - 5 saved searches
 - CTA: "Start Free Trial" (trial first, then converts)
 
-**Premium — £199/mo:**
+**Premium — £299/mo:**
 - Everything in Pro, plus:
 - Unlimited historical data
 - Unlimited saved searches
@@ -543,7 +541,7 @@ All CTAs start the free trial. Upgrade happens from within the dashboard.
 Create `/app/page.tsx`:
 
 Sections:
-1. **Hero:** "Track Every UK Planning Application" — subtext about finding opportunities before competitors. Search bar that redirects to signup.
+1. **Hero:** "Track Every London Planning Application" — subtext about finding opportunities before competitors. Search bar that redirects to signup.
 2. **Social proof:** "Trusted by X property investors and estate agents" (placeholder for now)
 3. **How it works:** 3 steps — Search → Filter → Act
 4. **Features grid:** Radius search, keyword filters, saved searches, CSV export, competitor tracking
@@ -689,6 +687,6 @@ Border radius: 8px (rounded-lg)
 - Use Supabase service role key for cron jobs and webhooks (bypasses RLS). Use anon key for client-side queries.
 - All search API routes should be server-side and check authentication + plan limits before querying.
 - Store Stripe price IDs in env vars, not hardcoded.
-- The planning API at api.planning.org.uk has rate limits — always add delays between requests in the sync job.
+- The Planning London Datahub API is free but add delays (2s) between borough requests in the sync job to be respectful.
 - Normalise all postcodes to uppercase with space before last 3 characters (e.g., "BS1 5AH").
 - The free trial should require no credit card. Users only enter payment details when upgrading.

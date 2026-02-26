@@ -16,8 +16,8 @@ export default function Login() {
 
     try {
       const supabase = createBrowserClient()
-
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      // Use production URL directly since environment variables may not work in browser
+      const siteUrl = 'https://www.planningradar.com'
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

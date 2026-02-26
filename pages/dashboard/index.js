@@ -2,22 +2,31 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { createBrowserClient } from '../../lib/supabase/pages-client'
+import { getUserPlan, getPlanDisplayInfo } from '../../lib/plan-enforcement'
 
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [userPlan, setUserPlan] = useState(null)
+  const [savedSearches, setSavedSearches] = useState([])
+  const [loadingPlan, setLoadingPlan] = useState(true)
+  const [managingSubscription, setManagingSubscription] = useState(false)
 
   // Search state
   const [searchForm, setSearchForm] = useState({
     postcode: '',
     radius: '1',
     council: '',
-    status: ''
+    status: '',
+    keyword: '',
+    applicant: '',
+    agent: ''
   })
   const [searchResults, setSearchResults] = useState(null)
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -32,6 +41,10 @@ export default function Dashboard() {
         }
 
         setUser(session.user)
+
+        // Load user plan and saved searches
+        await loadUserData(session.user.id)
+
       } catch (error) {
         console.error('Auth check error:', error)
         router.push('/login')
@@ -43,6 +56,30 @@ export default function Dashboard() {
     checkAuth()
   }, [router])
 
+  const loadUserData = async (userId) => {
+    try {
+      // Load user plan
+      const plan = await getUserPlan(userId)
+      setUserPlan(plan)
+
+      // Load saved searches
+      const supabase = createBrowserClient()
+      const { data: searches, error } = await supabase
+        .from('saved_searches')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (!error) {
+        setSavedSearches(searches || [])
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error)
+    } finally {
+      setLoadingPlan(false)
+    }
+  }
+
   const handleSignOut = async () => {
     try {
       const supabase = createBrowserClient()
@@ -50,6 +87,213 @@ export default function Dashboard() {
       router.push('/')
     } catch (error) {
       console.error('Sign out error:', error)
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    setManagingSubscription(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('No session found')
+      }
+
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Failed to access billing portal')
+      }
+    } catch (error) {
+      console.error('Billing portal error:', error)
+      alert('Unable to access billing portal. Please try again.')
+    } finally {
+      setManagingSubscription(false)
+    }
+  }
+
+  const handleUpgrade = async (priceId, planName) => {
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+    } catch (error) {
+      console.error('Upgrade error:', error)
+      alert('Unable to start upgrade process. Please try again.')
+    }
+  }
+
+  const deleteSavedSearch = async (searchId) => {
+    try {
+      const supabase = createBrowserClient()
+      const { error } = await supabase
+        .from('saved_searches')
+        .delete()
+        .eq('id', searchId)
+
+      if (error) throw error
+
+      // Remove from local state
+      setSavedSearches(prev => prev.filter(s => s.id !== searchId))
+    } catch (error) {
+      console.error('Error deleting saved search:', error)
+      alert('Failed to delete saved search')
+    }
+  }
+
+  const saveCurrentSearch = async () => {
+    if (!userPlan?.limits?.savedSearches || userPlan.limits.savedSearches === 0) {
+      alert('Saved searches are not available on the free plan. Please upgrade to Pro or Premium.')
+      return
+    }
+
+    if (userPlan.limits.savedSearches !== Infinity && savedSearches.length >= userPlan.limits.savedSearches) {
+      alert(`You've reached your saved search limit of ${userPlan.limits.savedSearches}. Please delete some searches or upgrade to Premium for unlimited saved searches.`)
+      return
+    }
+
+    const searchName = prompt('Enter a name for this search:')
+    if (!searchName || searchName.trim() === '') return
+
+    try {
+      const supabase = createBrowserClient()
+
+      // Create filters object
+      const filters = {}
+      if (searchForm.postcode) filters.postcode = searchForm.postcode
+      if (searchForm.council) filters.council = searchForm.council
+      if (searchForm.status) filters.status = searchForm.status
+      if (searchForm.keyword) filters.keyword = searchForm.keyword
+      if (searchForm.applicant) filters.applicant = searchForm.applicant
+      if (searchForm.agent) filters.agent = searchForm.agent
+      if (searchForm.radius) filters.radius = searchForm.radius
+
+      const { data, error } = await supabase
+        .from('saved_searches')
+        .insert([
+          {
+            user_id: user.id,
+            name: searchName.trim(),
+            filters: filters
+          }
+        ])
+        .select()
+
+      if (error) throw error
+
+      // Add to local state
+      setSavedSearches(prev => [data[0], ...prev])
+      alert('Search saved successfully!')
+
+    } catch (error) {
+      console.error('Error saving search:', error)
+      alert('Failed to save search: ' + error.message)
+    }
+  }
+
+  const runSavedSearch = (savedSearch) => {
+    const filters = savedSearch.filters
+    setSearchForm({
+      postcode: filters.postcode || '',
+      council: filters.council || '',
+      status: filters.status || '',
+      keyword: filters.keyword || '',
+      applicant: filters.applicant || '',
+      agent: filters.agent || '',
+      radius: filters.radius || '1'
+    })
+  }
+
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('No session found')
+      }
+
+      // Build export URL with same parameters as search
+      const params = new URLSearchParams()
+      if (searchForm.postcode) params.append('postcode', searchForm.postcode)
+      if (searchForm.council) params.append('council', searchForm.council)
+      if (searchForm.status) params.append('status', searchForm.status)
+      if (searchForm.keyword) params.append('keyword', searchForm.keyword)
+      if (searchForm.applicant) params.append('applicant', searchForm.applicant)
+      if (searchForm.agent) params.append('agent', searchForm.agent)
+
+      const response = await fetch(`/api/export?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        if (data.upgrade_required) {
+          alert('CSV export requires Premium plan. Please upgrade to access this feature.')
+          return
+        }
+        throw new Error(data.error || 'Export failed')
+      }
+
+      // Download the CSV file
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers.get('content-disposition')
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : 'planning-radar-export.csv'
+
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Failed to export CSV: ' + error.message)
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -64,8 +308,21 @@ export default function Dashboard() {
       if (searchForm.postcode) params.append('postcode', searchForm.postcode)
       if (searchForm.council) params.append('council', searchForm.council)
       if (searchForm.status) params.append('status', searchForm.status)
+      if (searchForm.keyword) params.append('keyword', searchForm.keyword)
+      if (searchForm.applicant) params.append('applicant', searchForm.applicant)
+      if (searchForm.agent) params.append('agent', searchForm.agent)
 
-      const response = await fetch(`/api/search?${params.toString()}`)
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const headers = {}
+      if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch(`/api/search?${params.toString()}`, {
+        headers
+      })
       const data = await response.json()
 
       if (!response.ok) {
@@ -122,33 +379,37 @@ export default function Dashboard() {
     return '#F59E0B'
   }
 
-  if (loading) {
+  if (loading || loadingPlan) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
 
+  const planInfo = getPlanDisplayInfo(userPlan?.plan || 'free')
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex-shrink-0">
-              <Link href="/" className="text-2xl font-bold text-gray-900">
+              <Link href="/" className="text-2xl font-bold text-secondary tracking-tight">
                 Planning Radar
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-500">Welcome back!</span>
-                <span className="text-sm font-medium text-gray-900">{user?.email}</span>
-              </div>
+              {userPlan && (
+                <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${planInfo.color}-100 text-${planInfo.color}-800`}>
+                  {planInfo.badge}
+                </span>
+              )}
+              <span className="text-sm text-secondary-light">{user?.email}</span>
               <button
                 onClick={handleSignOut}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200"
+                className="bg-white text-secondary border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all duration-200"
               >
                 Sign Out
               </button>
@@ -157,216 +418,372 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Dashboard Content */}
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">Search and track London planning applications</p>
+          <h1 className="text-4xl font-bold text-secondary tracking-tight">Dashboard</h1>
+          <p className="mt-2 text-xl text-secondary-light">Search and track London planning applications</p>
         </div>
 
-        {/* Search Section */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Search Planning Applications</h2>
-
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Subscription Status Card */}
+        {userPlan && (
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 mb-8">
+            <div className="flex items-start justify-between">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search by Postcode
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. BS1 5AH"
-                  value={searchForm.postcode}
-                  onChange={(e) => handleFormChange('postcode', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+                <h2 className="text-2xl font-bold text-secondary mb-2">
+                  {userPlan.plan === 'free' ? 'Free Plan' : `${planInfo.name} Plan`}
+                </h2>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Radius
-                </label>
-                <select
-                  value={searchForm.radius}
-                  onChange={(e) => handleFormChange('radius', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="0.5">0.5 miles</option>
-                  <option value="1">1 mile</option>
-                  <option value="3">3 miles</option>
-                  <option value="5">5 miles</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Borough (Alternative to postcode)
-                </label>
-                <select
-                  value={searchForm.council}
-                  onChange={(e) => handleFormChange('council', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select a council...</option>
-                  <option value="bristol">Bristol City Council</option>
-                  <option value="birmingham">Birmingham City Council</option>
-                  <option value="manchester">Manchester City Council</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Status
-                </label>
-                <select
-                  value={searchForm.status}
-                  onChange={(e) => handleFormChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All applications</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="refused">Refused</option>
-                </select>
-              </div>
-            </div>
-
-            {searchError && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-700 text-sm">{searchError}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={searching}
-              className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {searching ? 'Searching...' : 'Search Applications'}
-            </button>
-          </form>
-        </div>
-
-        {/* Search Results */}
-        {searchResults && (
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Search Results ({searchResults.pagination.total})
-              </h2>
-              {searchResults.limits_applied && (
-                <span className="text-sm text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
-                  Free trial: Showing first 10 results
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {searchResults.applications.map((app) => (
-                <div key={app.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 mr-4">
-                      {/* Rich Planning Description */}
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        {app.description || app.title}
-                      </h3>
-                      {/* Rich Address */}
-                      <p className="text-gray-600 mb-2">{app.address}</p>
-                      {app.ward && (
-                        <p className="text-sm text-gray-500 mb-2">Ward: {app.ward}</p>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      {/* Status Badge */}
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeColor(app.status)}`}
-                        style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
+                {userPlan.plan === 'free' && (
+                  <div className="space-y-2">
+                    <p className="text-secondary-light">
+                      You're currently on the free plan with limited access.
+                    </p>
+                    <div className="flex space-x-3 mt-4">
+                      <button
+                        onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, 'Pro')}
+                        className="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200"
                       >
-                        {app.status}
-                      </span>
-                      {/* Council Portal Link */}
-                      {app.url_planning_app && (
-                        <a
-                          href={app.url_planning_app}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          View on Council Website →
-                        </a>
-                      )}
+                        Upgrade to Pro - £79/mo
+                      </button>
+                      <button
+                        onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID, 'Premium')}
+                        className="bg-accent text-white px-6 py-2 rounded-xl font-semibold hover:bg-accent-dark transition-all duration-200"
+                      >
+                        Upgrade to Premium - £299/mo
+                      </button>
                     </div>
                   </div>
+                )}
 
-                  {/* Rich Metadata Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-500 border-t border-gray-100 pt-3">
-                    <div>
-                      <span className="font-medium">Council:</span> {app.council}
-                    </div>
-                    <div>
-                      <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">Type:</span> {app.development_type || app.type || 'Planning Application'}
-                    </div>
-                    <div>
-                      <span className="font-medium">Applicant:</span> {app.applicant || 'Not specified'}
-                    </div>
+                {(userPlan.plan === 'pro' || userPlan.plan === 'premium') && (
+                  <div className="space-y-2">
+                    <p className="text-secondary-light">
+                      {userPlan.current_period_end && `Next billing date: ${new Date(userPlan.current_period_end).toLocaleDateString()}`}
+                    </p>
+                    <button
+                      onClick={handleManageSubscription}
+                      disabled={managingSubscription}
+                      className="bg-gray-100 text-secondary border border-gray-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
+                    >
+                      {managingSubscription ? 'Loading...' : 'Manage Subscription'}
+                    </button>
                   </div>
+                )}
+              </div>
 
-                  {/* Additional Rich Fields */}
-                  {(app.decision_target_date || app.appeal_status) && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-500 mt-2 pt-2 border-t border-gray-50">
-                      {app.decision_target_date && (
-                        <div>
-                          <span className="font-medium">Target Decision:</span> {new Date(app.decision_target_date).toLocaleDateString()}
-                        </div>
-                      )}
-                      {app.appeal_status && (
-                        <div>
-                          <span className="font-medium">Appeal:</span> {app.appeal_status}
-                        </div>
-                      )}
-                      {app.uprn && (
-                        <div>
-                          <span className="font-medium">UPRN:</span> {app.uprn}
-                        </div>
-                      )}
-                    </div>
-                  )}
+              <div className="text-right">
+                <div className="text-sm text-secondary-light">Plan Limits</div>
+                <div className="text-secondary text-sm mt-1">
+                  <div>Results: {userPlan.limits?.maxResults === Infinity ? 'Unlimited' : userPlan.limits?.maxResults}</div>
+                  <div>History: {userPlan.limits?.historyDays === Infinity ? 'Unlimited' : `${userPlan.limits?.historyDays} days`}</div>
+                  <div>Saved Searches: {userPlan.limits?.savedSearches === Infinity ? 'Unlimited' : userPlan.limits?.savedSearches}</div>
                 </div>
-              ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Search */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Search Section */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8">
+              <h2 className="text-2xl font-bold text-secondary mb-6">Search Planning Applications</h2>
+
+              <form onSubmit={handleSearch} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-3">
+                      Search by Postcode
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. E1 6AN"
+                      value={searchForm.postcode}
+                      onChange={(e) => handleFormChange('postcode', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-3">
+                      Search Radius
+                    </label>
+                    <select
+                      value={searchForm.radius}
+                      onChange={(e) => handleFormChange('radius', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
+                    >
+                      <option value="0.5">0.5 miles</option>
+                      <option value="1">1 mile</option>
+                      <option value="3">3 miles</option>
+                      <option value="5">5 miles</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-3">
+                      Borough (Alternative to postcode)
+                    </label>
+                    <select
+                      value={searchForm.council}
+                      onChange={(e) => handleFormChange('council', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
+                    >
+                      <option value="">Select a borough...</option>
+                      <option value="Camden">Camden</option>
+                      <option value="Westminster">Westminster</option>
+                      <option value="Hackney">Hackney</option>
+                      <option value="Islington">Islington</option>
+                      <option value="Tower Hamlets">Tower Hamlets</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-3">
+                      Application Status
+                    </label>
+                    <select
+                      value={searchForm.status}
+                      onChange={(e) => handleFormChange('status', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200"
+                    >
+                      <option value="">All applications</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="refused">Refused</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Advanced Search Fields - Premium Features */}
+                <div className="space-y-4 border-t border-slate-100 pt-6">
+                  <h3 className="text-lg font-semibold text-secondary">Advanced Search</h3>
+
+                  {/* Keyword Search - Pro Feature */}
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-3">
+                      Keyword Search {!userPlan?.limits?.keywordSearch && <span className="text-accent text-xs">(Pro+)</span>}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Search in application descriptions..."
+                      value={searchForm.keyword}
+                      onChange={(e) => handleFormChange('keyword', e.target.value)}
+                      disabled={!userPlan?.limits?.keywordSearch}
+                      className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200 ${
+                        !userPlan?.limits?.keywordSearch ? 'bg-gray-50 text-gray-400' : ''
+                      }`}
+                    />
+                    {!userPlan?.limits?.keywordSearch && (
+                      <p className="text-xs text-accent mt-2">Upgrade to Pro to search by keywords</p>
+                    )}
+                  </div>
+
+                  {/* Applicant and Agent Search - Premium Features */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-secondary mb-3">
+                        Applicant Name {!userPlan?.limits?.applicantSearch && <span className="text-accent text-xs">(Premium)</span>}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Search by applicant name..."
+                        value={searchForm.applicant}
+                        onChange={(e) => handleFormChange('applicant', e.target.value)}
+                        disabled={!userPlan?.limits?.applicantSearch}
+                        className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200 ${
+                          !userPlan?.limits?.applicantSearch ? 'bg-gray-50 text-gray-400' : ''
+                        }`}
+                      />
+                      {!userPlan?.limits?.applicantSearch && (
+                        <p className="text-xs text-accent mt-2">Upgrade to Premium for applicant search</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-secondary mb-3">
+                        Agent Name {!userPlan?.limits?.applicantSearch && <span className="text-accent text-xs">(Premium)</span>}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Search by agent name..."
+                        value={searchForm.agent}
+                        onChange={(e) => handleFormChange('agent', e.target.value)}
+                        disabled={!userPlan?.limits?.applicantSearch}
+                        className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-200 ${
+                          !userPlan?.limits?.applicantSearch ? 'bg-gray-50 text-gray-400' : ''
+                        }`}
+                      />
+                      {!userPlan?.limits?.applicantSearch && (
+                        <p className="text-xs text-accent mt-2">Upgrade to Premium for agent search</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {searchError && (
+                  <div className="p-4 bg-danger/10 border border-danger/20 rounded-xl">
+                    <p className="text-danger text-sm">{searchError}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={searching}
+                  className="w-full bg-primary text-white px-8 py-4 rounded-xl font-semibold hover:bg-primary-dark transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                >
+                  {searching ? 'Searching...' : 'Search Applications'}
+                </button>
+              </form>
             </div>
 
-            {searchResults.pagination.total_pages > 1 && (
-              <div className="mt-6 flex justify-center">
-                <div className="text-sm text-gray-500">
-                  Page {searchResults.pagination.page} of {searchResults.pagination.total_pages}
+            {/* Search Results */}
+            {searchResults && (
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-secondary">
+                    Search Results ({searchResults.pagination?.total || 0})
+                  </h2>
+                  <div className="flex items-center space-x-3">
+                    {searchResults.limits_applied && (
+                      <span className="text-sm text-warning bg-warning/10 px-3 py-1 rounded-full border border-warning/20">
+                        {userPlan.plan} plan: Limited results
+                      </span>
+                    )}
+                    {searchResults.pagination?.total > 0 && (
+                      <>
+                        <button
+                          onClick={saveCurrentSearch}
+                          disabled={!userPlan?.limits?.savedSearches || userPlan.limits.savedSearches === 0}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            userPlan?.limits?.savedSearches && userPlan.limits.savedSearches > 0
+                              ? 'bg-primary text-white hover:bg-primary-dark shadow-sm hover:shadow-md'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                          title={!userPlan?.limits?.savedSearches || userPlan.limits.savedSearches === 0 ? 'Saved searches require Pro or Premium plan' : 'Save this search for later'}
+                        >
+                          💾 Save Search
+                        </button>
+                        <button
+                          onClick={handleExportCSV}
+                          disabled={exporting || !userPlan?.limits?.csvExport}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            userPlan?.limits?.csvExport
+                              ? 'bg-accent text-white hover:bg-accent-dark shadow-sm hover:shadow-md'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                          title={!userPlan?.limits?.csvExport ? 'CSV export requires Premium plan' : 'Export search results to CSV'}
+                        >
+                          {exporting ? 'Exporting...' : '📊 Export CSV'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {searchResults.applications?.map((app) => (
+                    <div key={app.id} className="border border-slate-100 rounded-xl p-6 hover:border-slate-200 transition-colors duration-200">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 mr-4">
+                          <h3 className="text-lg font-semibold text-secondary mb-2">
+                            {app.description || app.title}
+                          </h3>
+                          <p className="text-secondary-light mb-2">{app.address}</p>
+                        </div>
+                        <span
+                          className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
+                        >
+                          {app.status}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-secondary-light border-t border-slate-100 pt-4">
+                        <div>
+                          <span className="font-medium">Council:</span> {app.council}
+                        </div>
+                        <div>
+                          <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Type:</span> {app.development_type || app.type || 'Planning Application'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Applicant:</span> {app.applicant || 'Not specified'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
-        )}
 
-        {/* Trial Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100">
-                <span className="text-blue-600 font-semibold text-sm">7</span>
+          {/* Right Column - Saved Searches */}
+          <div className="space-y-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-secondary">Saved Searches</h3>
+                {userPlan?.limits?.savedSearches && (
+                  <span className="text-sm text-secondary-light">
+                    {savedSearches.length} / {userPlan.limits.savedSearches === Infinity ? '∞' : userPlan.limits.savedSearches}
+                  </span>
+                )}
               </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-lg font-semibold text-blue-900">Free Trial Active</h3>
-              <p className="text-blue-700 mb-4">
-                You have 7 days remaining in your free trial. Search up to 10 results with basic filters.
-              </p>
-              <Link href="/pricing" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                Upgrade to Pro
-              </Link>
+
+              {savedSearches.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">🔍</div>
+                  <p className="text-secondary-light">No saved searches yet</p>
+                  <p className="text-sm text-secondary-light mt-2">
+                    Run a search and save it to track applications
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {savedSearches.map((search) => (
+                    <div key={search.id} className="border border-slate-100 rounded-xl p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-secondary">{search.name}</h4>
+                          <p className="text-sm text-secondary-light mt-1">
+                            {new Date(search.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteSavedSearch(search.id)}
+                          className="text-danger hover:text-danger-dark text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      {/* Search parameters summary */}
+                      <div className="text-xs text-secondary-light mb-3">
+                        {Object.entries(search.filters).map(([key, value]) => (
+                          value && (
+                            <span key={key} className="inline-block bg-gray-100 px-2 py-1 rounded mr-2 mb-1">
+                              {key}: {value}
+                            </span>
+                          )
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => runSavedSearch(search)}
+                        className="w-full bg-primary/10 text-primary px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors duration-200"
+                      >
+                        🔄 Run Search
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

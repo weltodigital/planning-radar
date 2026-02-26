@@ -10,13 +10,7 @@ export default async function handler(req, res) {
   try {
     // Get query parameters
     const {
-      postcode,
       radius = 1, // Default 1 mile radius for postcode search
-      council,
-      status,
-      keyword,
-      applicant,
-      agent,
       page = 1,
       limit = 10
     } = req.query
@@ -47,7 +41,7 @@ export default async function handler(req, res) {
     const { params: enforcedParams, plan, status: planStatus, limitsApplied, limits } = await applyPlanLimits(userId, req.query)
 
     // Check keyword search permission
-    if (req.query.keyword && !limits.keywordSearch && !isDemo) {
+    if (enforcedParams.keyword && !limits.keywordSearch && !isDemo) {
       return res.status(403).json({
         error: 'Keyword search requires Pro or Premium plan',
         upgrade_required: true,
@@ -56,7 +50,7 @@ export default async function handler(req, res) {
     }
 
     // Check applicant/agent search permission (Premium only)
-    if ((req.query.applicant || req.query.agent) && !limits.applicantSearch && !isDemo) {
+    if ((enforcedParams.applicant || enforcedParams.agent) && !limits.applicantSearch && !isDemo) {
       return res.status(403).json({
         error: 'Applicant and agent search requires Premium plan',
         upgrade_required: true,
@@ -72,14 +66,12 @@ export default async function handler(req, res) {
       .order('date_validated', { ascending: false })
 
     // Use enforced parameters for filtering
-    const { postcode, council, status, keyword } = enforcedParams
-    const { applicant, agent } = req.query // These don't get modified by plan enforcement
     const queryLimit = parseInt(enforcedParams.limit) || 10
 
     // Apply filters
-    if (postcode) {
+    if (enforcedParams.postcode) {
       // Try geographic radius search first (more accurate)
-      const coordinates = await geocodePostcode(postcode)
+      const coordinates = await geocodePostcode(enforcedParams.postcode)
 
       if (coordinates) {
         // Use PostGIS radius search
@@ -90,32 +82,32 @@ export default async function handler(req, res) {
         query = query.filter('location', 'st_dwithin', `${point}, ${radiusMeters}`)
       } else {
         // Fallback to postcode area matching if geocoding fails
-        const postcodeArea = postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
+        const postcodeArea = enforcedParams.postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
         query = query.ilike('postcode', `${postcodeArea}%`)
       }
     }
 
-    if (council) {
-      query = query.ilike('lpa_name', `%${council}%`)
+    if (enforcedParams.council) {
+      query = query.ilike('lpa_name', `%${enforcedParams.council}%`)
     }
 
-    if (status) {
-      query = query.ilike('decision', `%${status}%`)
+    if (enforcedParams.status) {
+      query = query.ilike('decision', `%${enforcedParams.status}%`)
     }
 
-    if (keyword && limits.keywordSearch) {
+    if (enforcedParams.keyword && limits.keywordSearch) {
       // Enhanced full-text search on title, description, and address
-      query = query.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,address.ilike.%${keyword}%,application_details.ilike.%${keyword}%`)
+      query = query.or(`title.ilike.%${enforcedParams.keyword}%,description.ilike.%${enforcedParams.keyword}%,address.ilike.%${enforcedParams.keyword}%,application_details.ilike.%${enforcedParams.keyword}%`)
     }
 
     // Apply applicant search (Premium only)
-    if (applicant && limits.applicantSearch) {
-      query = query.ilike('applicant_name', `%${applicant}%`)
+    if (enforcedParams.applicant && limits.applicantSearch) {
+      query = query.ilike('applicant_name', `%${enforcedParams.applicant}%`)
     }
 
     // Apply agent search (Premium only)
-    if (agent && limits.applicantSearch) {
-      query = query.ilike('agent_name', `%${agent}%`)
+    if (enforcedParams.agent && limits.applicantSearch) {
+      query = query.ilike('agent_name', `%${enforcedParams.agent}%`)
     }
 
     // Apply date filtering if enforced by plan
@@ -142,8 +134,8 @@ export default async function handler(req, res) {
       .select('id', { count: 'exact', head: true })
 
     // Apply same filters for count
-    if (postcode) {
-      const coordinates = await geocodePostcode(postcode)
+    if (enforcedParams.postcode) {
+      const coordinates = await geocodePostcode(enforcedParams.postcode)
 
       if (coordinates) {
         // Use PostGIS radius search for count too
@@ -152,24 +144,24 @@ export default async function handler(req, res) {
         totalQuery = totalQuery.filter('location', 'st_dwithin', `${point}, ${radiusMeters}`)
       } else {
         // Fallback to postcode area matching
-        const postcodeArea = postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
+        const postcodeArea = enforcedParams.postcode.replace(/\s/g, '').substring(0, 3).toUpperCase()
         totalQuery = totalQuery.ilike('postcode', `${postcodeArea}%`)
       }
     }
-    if (council) {
-      totalQuery = totalQuery.ilike('lpa_name', `%${council}%`)
+    if (enforcedParams.council) {
+      totalQuery = totalQuery.ilike('lpa_name', `%${enforcedParams.council}%`)
     }
-    if (status) {
-      totalQuery = totalQuery.ilike('decision', `%${status}%`)
+    if (enforcedParams.status) {
+      totalQuery = totalQuery.ilike('decision', `%${enforcedParams.status}%`)
     }
-    if (keyword && limits.keywordSearch) {
-      totalQuery = totalQuery.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%,address.ilike.%${keyword}%,application_details.ilike.%${keyword}%`)
+    if (enforcedParams.keyword && limits.keywordSearch) {
+      totalQuery = totalQuery.or(`title.ilike.%${enforcedParams.keyword}%,description.ilike.%${enforcedParams.keyword}%,address.ilike.%${enforcedParams.keyword}%,application_details.ilike.%${enforcedParams.keyword}%`)
     }
-    if (applicant && limits.applicantSearch) {
-      totalQuery = totalQuery.ilike('applicant_name', `%${applicant}%`)
+    if (enforcedParams.applicant && limits.applicantSearch) {
+      totalQuery = totalQuery.ilike('applicant_name', `%${enforcedParams.applicant}%`)
     }
-    if (agent && limits.applicantSearch) {
-      totalQuery = totalQuery.ilike('agent_name', `%${agent}%`)
+    if (enforcedParams.agent && limits.applicantSearch) {
+      totalQuery = totalQuery.ilike('agent_name', `%${enforcedParams.agent}%`)
     }
     if (enforcedParams.date_from) {
       totalQuery = totalQuery.gte('date_validated', enforcedParams.date_from)

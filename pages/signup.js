@@ -16,12 +16,12 @@ export default function Signup() {
 
     try {
       const supabase = createBrowserClient()
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
 
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password: Math.random().toString(36), // Random password since we're using magic links
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${siteUrl}/auth/callback`
         }
       })
 
@@ -29,7 +29,7 @@ export default function Signup() {
         throw error
       }
 
-      setMessage('Account created! Check your email for the magic link.')
+      setMessage('Check your email for the magic link to complete signup!')
       setIsSuccess(true)
     } catch (error) {
       setMessage(error.message || 'Error creating account. Please try again.')

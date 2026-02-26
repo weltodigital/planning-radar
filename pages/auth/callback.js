@@ -2,6 +2,26 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { createBrowserClient } from '../../lib/supabase/pages-client'
 
+// Function to check and create subscription for new users
+async function checkAndCreateSubscription(userId) {
+  try {
+    const response = await fetch('/api/auth/create-subscription', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+      console.error('Failed to check/create subscription')
+    }
+  } catch (error) {
+    console.error('Error checking subscription:', error)
+    // Don't block auth flow if subscription creation fails
+  }
+}
+
 export default function AuthCallback() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -12,22 +32,85 @@ export default function AuthCallback() {
       try {
         const supabase = createBrowserClient()
 
-        // Get the code from URL parameters
-        const { code } = router.query
+        // Handle hash-based auth (magic links)
+        const { data, error } = await supabase.auth.getSession()
 
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          console.error('Session error:', error)
+          setError('Authentication failed. Please try again.')
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        if (data.session) {
+          // We have a valid session, check if we need to create subscription
+          await checkAndCreateSubscription(data.session.user.id)
+          router.push('/dashboard')
+          return
+        }
+
+        // If no session, try to get it from URL hash or query params
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const queryParams = new URLSearchParams(window.location.search)
+
+        const accessToken = hashParams.get('access_token') || queryParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token')
+        const code = queryParams.get('code')
+        const tokenHash = hashParams.get('token_hash')
+        const type = hashParams.get('type') || queryParams.get('type')
+
+        // Log what we're getting for debugging
+        console.log('Auth callback params:', {
+          accessToken: !!accessToken,
+          refreshToken: !!refreshToken,
+          code: !!code,
+          tokenHash: !!tokenHash,
+          type,
+          hash: window.location.hash,
+          search: window.location.search
+        })
+
+        if (accessToken && refreshToken) {
+          // Set session from tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
 
           if (error) {
+            console.error('Set session error:', error)
             setError('Authentication failed. Please try again.')
             setTimeout(() => router.push('/login'), 3000)
             return
           }
 
-          // Success - redirect to dashboard
+          // Check if we need to create subscription for this user
+          const { data: sessionData } = await supabase.auth.getSession()
+          if (sessionData.session) {
+            await checkAndCreateSubscription(sessionData.session.user.id)
+          }
+
+          router.push('/dashboard')
+        } else if (code) {
+          // Try exchange code for session
+          const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (error) {
+            console.error('Exchange code error:', error)
+            setError('Authentication failed. Please try again.')
+            setTimeout(() => router.push('/login'), 3000)
+            return
+          }
+
+          // Check if we need to create subscription for this user
+          if (sessionData.session) {
+            await checkAndCreateSubscription(sessionData.session.user.id)
+          }
+
           router.push('/dashboard')
         } else {
-          setError('No authentication code provided.')
+          console.log('No valid auth parameters found')
+          setError('No authentication information provided.')
           setTimeout(() => router.push('/login'), 3000)
         }
       } catch (error) {

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { createBrowserClient } from '../../lib/supabase/pages-client'
 import { getUserPlan, getPlanDisplayInfo } from '../../lib/plan-enforcement'
+import EnrichmentPanel from '../../components/EnrichmentPanel'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [selectedApplication, setSelectedApplication] = useState(null)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -687,13 +689,37 @@ export default function Dashboard() {
 
                 <div className="space-y-4">
                   {searchResults.applications?.map((app) => (
-                    <div key={app.id} className="border border-slate-100 rounded-xl p-6 hover:border-slate-200 transition-colors duration-200">
+                    <div
+                      key={app.id}
+                      className="border border-slate-100 rounded-xl p-6 hover:border-slate-200 transition-colors duration-200 cursor-pointer"
+                      onClick={() => setSelectedApplication(app)}
+                    >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1 mr-4">
-                          <h3 className="text-lg font-semibold text-secondary mb-2">
-                            {app.description || app.title}
-                          </h3>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-semibold text-secondary">
+                              {app.description || app.title}
+                            </h3>
+                            <div className="flex items-center space-x-2 text-sm text-slate-500">
+                              <span>Click for details</span>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </div>
                           <p className="text-secondary-light mb-2">{app.address}</p>
+                          {app.opportunity_score && (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-slate-500">Opportunity Score:</span>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                app.opportunity_score >= 70 ? 'bg-emerald-100 text-emerald-800' :
+                                app.opportunity_score >= 50 ? 'bg-amber-100 text-amber-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {app.opportunity_score}/100
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <span
                           className="px-3 py-1 rounded-full text-xs font-medium text-white"
@@ -788,6 +814,138 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Application Detail Modal */}
+      {selectedApplication && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-secondary">Application Details</h2>
+                <button
+                  onClick={() => setSelectedApplication(null)}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Basic Application Info */}
+              <div className="bg-slate-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-secondary mb-4">Application Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-slate-700">Reference:</span>
+                    <span className="ml-2 text-slate-600">{selectedApplication.reference}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Council:</span>
+                    <span className="ml-2 text-slate-600">{selectedApplication.council}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Status:</span>
+                    <span
+                      className="ml-2 px-2 py-1 rounded-full text-xs font-medium text-white"
+                      style={{ backgroundColor: getStatusBackgroundColor(selectedApplication.status) }}
+                    >
+                      {selectedApplication.status}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Date Validated:</span>
+                    <span className="ml-2 text-slate-600">
+                      {new Date(selectedApplication.date_validated).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Application Type:</span>
+                    <span className="ml-2 text-slate-600">
+                      {selectedApplication.development_type || selectedApplication.type || 'Planning Application'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Applicant:</span>
+                    <span className="ml-2 text-slate-600">
+                      {selectedApplication.applicant || 'Not specified'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <span className="font-medium text-slate-700">Description:</span>
+                  <p className="mt-2 text-slate-600 leading-relaxed">
+                    {selectedApplication.description || selectedApplication.title}
+                  </p>
+                </div>
+
+                <div className="mt-4">
+                  <span className="font-medium text-slate-700">Address:</span>
+                  <p className="mt-1 text-slate-600">{selectedApplication.address}</p>
+                </div>
+
+                {selectedApplication.external_link && (
+                  <div className="mt-4">
+                    <a
+                      href={selectedApplication.external_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                    >
+                      View on Council Portal
+                      <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Property Intelligence Panel */}
+              {userPlan?.limits?.fullDetail ? (
+                <EnrichmentPanel applicationReference={selectedApplication.reference} />
+              ) : (
+                <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-xl p-6">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-primary">Property Intelligence</h3>
+                    <span className="px-2 py-1 bg-accent text-white text-xs rounded-full font-medium">
+                      Pro Feature
+                    </span>
+                  </div>
+                  <p className="text-slate-600 mb-4">
+                    Unlock detailed property analysis including opportunity scores, price intelligence,
+                    planning constraints, and risk assessments.
+                  </p>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, 'Pro')}
+                      className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
+                    >
+                      Upgrade to Pro - £79/mo
+                    </button>
+                    <button
+                      onClick={() => handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID, 'Premium')}
+                      className="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-dark transition-colors text-sm font-medium"
+                    >
+                      Premium - £299/mo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

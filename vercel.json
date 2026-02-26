@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/sync-applications",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/sync-land-registry",
+      "schedule": "0 2 1 * *"
+    },
+    {
+      "path": "/api/cron/enrich-batch",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

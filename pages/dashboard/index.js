@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createBrowserClient } from '../../lib/supabase/pages-client'
 import { getUserPlan, getPlanDisplayInfo } from '../../lib/plan-enforcement'
 import EnrichmentPanel from '../../components/EnrichmentPanel'
+import MapView from '../../components/MapView'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [searchError, setSearchError] = useState('')
   const [exporting, setExporting] = useState(false)
   const [selectedApplication, setSelectedApplication] = useState(null)
+  const [viewMode, setViewMode] = useState('list') // 'list', 'map', 'split'
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -647,9 +649,46 @@ export default function Dashboard() {
             {searchResults && (
               <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-secondary">
-                    Search Results ({searchResults.pagination?.total || 0})
-                  </h2>
+                  <div className="flex items-center space-x-4">
+                    <h2 className="text-2xl font-bold text-secondary">
+                      Search Results ({searchResults.pagination?.total || 0})
+                    </h2>
+
+                    {/* View Mode Toggle */}
+                    <div className="flex rounded-lg border border-slate-200 p-1">
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                          viewMode === 'list'
+                            ? 'bg-primary text-white'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        📋 List
+                      </button>
+                      <button
+                        onClick={() => setViewMode('map')}
+                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                          viewMode === 'map'
+                            ? 'bg-primary text-white'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        🗺️ Map
+                      </button>
+                      <button
+                        onClick={() => setViewMode('split')}
+                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                          viewMode === 'split'
+                            ? 'bg-primary text-white'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        📊 Split
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex items-center space-x-3">
                     {searchResults.limits_applied && (
                       <span className="text-sm text-warning bg-warning/10 px-3 py-1 rounded-full border border-warning/20">
@@ -687,30 +726,105 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  {searchResults.applications?.map((app) => (
-                    <div
-                      key={app.id}
-                      className="border border-slate-100 rounded-xl p-6 hover:border-slate-200 transition-colors duration-200 cursor-pointer"
-                      onClick={() => setSelectedApplication(app)}
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1 mr-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-secondary">
-                              {app.description || app.title}
-                            </h3>
-                            <div className="flex items-center space-x-2 text-sm text-slate-500">
-                              <span>Click for details</span>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                              </svg>
+{/* Conditional View Rendering */}
+                {viewMode === 'list' && (
+                  <div className="space-y-4">
+                    {searchResults.applications?.map((app) => (
+                      <div
+                        key={app.id}
+                        className="border border-slate-100 rounded-xl p-6 hover:border-slate-200 transition-colors duration-200 cursor-pointer"
+                        onClick={() => setSelectedApplication(app)}
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1 mr-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-lg font-semibold text-secondary">
+                                {app.description || app.title}
+                              </h3>
+                              <div className="flex items-center space-x-2 text-sm text-slate-500">
+                                <span>Click for details</span>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
                             </div>
+                            <p className="text-secondary-light mb-2">{app.address}</p>
+                            {app.opportunity_score && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-slate-500">Opportunity Score:</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  app.opportunity_score >= 70 ? 'bg-emerald-100 text-emerald-800' :
+                                  app.opportunity_score >= 50 ? 'bg-amber-100 text-amber-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {app.opportunity_score}/100
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-secondary-light mb-2">{app.address}</p>
-                          {app.opportunity_score && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs text-slate-500">Opportunity Score:</span>
+                          <span
+                            className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                            style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
+                          >
+                            {app.status}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-secondary-light border-t border-slate-100 pt-4">
+                          <div>
+                            <span className="font-medium">Council:</span> {app.council}
+                          </div>
+                          <div>
+                            <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Type:</span> {app.development_type || app.type || 'Planning Application'}
+                          </div>
+                          <div>
+                            <span className="font-medium">Applicant:</span> {app.applicant || 'Not specified'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {viewMode === 'map' && (
+                  <div className="h-[600px]">
+                    <MapView
+                      applications={searchResults.applications || []}
+                      onApplicationClick={setSelectedApplication}
+                      showConstraints={userPlan?.limits?.fullDetail}
+                      height="100%"
+                    />
+                  </div>
+                )}
+
+                {viewMode === 'split' && (
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Left: List View */}
+                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                      {searchResults.applications?.map((app) => (
+                        <div
+                          key={app.id}
+                          className="border border-slate-100 rounded-xl p-4 hover:border-slate-200 transition-colors duration-200 cursor-pointer"
+                          onClick={() => setSelectedApplication(app)}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-medium text-secondary text-sm pr-2">
+                              {app.description || app.title}
+                            </h4>
+                            <span
+                              className="px-2 py-1 rounded-full text-xs font-medium text-white whitespace-nowrap"
+                              style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
+                            >
+                              {app.status}
+                            </span>
+                          </div>
+                          <p className="text-secondary-light text-sm mb-2">{app.address}</p>
+                          <div className="flex justify-between items-center text-xs text-secondary-light">
+                            <span>{app.council}</span>
+                            {app.opportunity_score && (
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
                                 app.opportunity_score >= 70 ? 'bg-emerald-100 text-emerald-800' :
                                 app.opportunity_score >= 50 ? 'bg-amber-100 text-amber-800' :
@@ -718,34 +832,23 @@ export default function Dashboard() {
                               }`}>
                                 {app.opportunity_score}/100
                               </span>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                        <span
-                          className="px-3 py-1 rounded-full text-xs font-medium text-white"
-                          style={{ backgroundColor: getStatusBackgroundColor(app.status) }}
-                        >
-                          {app.status}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-secondary-light border-t border-slate-100 pt-4">
-                        <div>
-                          <span className="font-medium">Council:</span> {app.council}
-                        </div>
-                        <div>
-                          <span className="font-medium">Date:</span> {new Date(app.date_validated).toLocaleDateString()}
-                        </div>
-                        <div>
-                          <span className="font-medium">Type:</span> {app.development_type || app.type || 'Planning Application'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Applicant:</span> {app.applicant || 'Not specified'}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+
+                    {/* Right: Map View */}
+                    <div className="h-[600px]">
+                      <MapView
+                        applications={searchResults.applications || []}
+                        onApplicationClick={setSelectedApplication}
+                        showConstraints={userPlan?.limits?.fullDetail}
+                        height="100%"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
